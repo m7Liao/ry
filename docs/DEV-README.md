@@ -32,17 +32,20 @@
 
 ```powershell
 ./verify-dev.ps1
+./verify-attendance.ps1
 ```
 
 ## 本机配置
 
-- MySQL 8.0.37：`127.0.0.1:3306`，数据库 `ry-vue`，已导入仓库的业务及 Quartz 初始化脚本，共 31 张表。
+- MySQL 8.0.37：`127.0.0.1:3306`，数据库 `ry-vue`，已导入系统、Quartz 及考勤基础数据脚本，共 33 张表。
 - 数据库连接信息放在 `.runtime/application-local.yml`，由启动脚本加载；`.runtime/` 已加入根目录 `.gitignore`。
 - 本机 Redis 8.2.1 的 MSYS2 程序启动崩溃，启动脚本使用本机已有的 `D:/redis/Redis-x64-5.0.14.1/redis-server.exe`，监听 `127.0.0.1:6379`。
 - 启动脚本创建的 Redis 仅用于本地开发，不保存缓存；停止脚本只停止本项目记录的进程，保留 MySQL 系统服务。
 - 日志：`.runtime/logs/`；上传目录：`.runtime/uploads/`；Maven 和 npm 缓存也放在 `.runtime/`。
 - 前端端口 `80`，通过 `/dev-api` 代理到后端端口 `8080`。
 
-初始化使用 `Vue-springboot3/sql/ry_20260417.sql` 和 `quartz.sql`。已初始化的旧版本可使用 `cleanup-demo.sql` 清理原始示例数据；该脚本按原始记录标识匹配。
+空库初始化依次使用 `Vue-springboot3/sql/ry_20260417.sql`、`quartz.sql` 和 `attendance-base.sql`。前两份脚本会删除并重建系统表，已有库升级本次功能仅执行 `attendance-base.sql`。旧演示数据可使用 `cleanup-demo.sql` 按原始记录标识清理。
+
+已实现“考勤管理 → 办公场所 / 员工档案”，操作顺序为建立部门与账号、登记场所、创建档案并绑定。详见 [办公场所与员工档案使用说明](办公场所与员工档案使用说明.md)。专项验证会建立临时测试数据并在结束时清理，限本地开发库使用。
 
 更换机器时需调整启动脚本中的 Redis 路径，并自行填写本地数据库连接信息。

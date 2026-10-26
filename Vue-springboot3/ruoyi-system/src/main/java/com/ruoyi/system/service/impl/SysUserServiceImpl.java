@@ -5,11 +5,14 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 import jakarta.validation.Validator;
+import org.springframework.context.ApplicationEventPublisher;
+import com.ruoyi.common.event.BeforeSystemDelete;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.util.CollectionUtils;
 import com.ruoyi.common.annotation.DataScope;
 import com.ruoyi.common.constant.UserConstants;
@@ -40,6 +43,8 @@ import com.ruoyi.system.service.ISysUserService;
 @Service
 public class SysUserServiceImpl implements ISysUserService
 {
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
     private static final Logger log = LoggerFactory.getLogger(SysUserServiceImpl.class);
 
     @Autowired
@@ -456,9 +461,10 @@ public class SysUserServiceImpl implements ISysUserService
      * @return 结果
      */
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public int deleteUserById(Long userId)
     {
+        eventPublisher.publishEvent(new BeforeSystemDelete(BeforeSystemDelete.Target.USER, new Long[] {userId}));
         // 删除用户与角色关联
         userRoleMapper.deleteUserRoleByUserId(userId);
         // 删除用户与岗位表
@@ -473,7 +479,7 @@ public class SysUserServiceImpl implements ISysUserService
      * @return 结果
      */
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public int deleteUserByIds(Long[] userIds)
     {
         for (Long userId : userIds)
@@ -481,6 +487,7 @@ public class SysUserServiceImpl implements ISysUserService
             checkUserAllowed(new SysUser(userId));
             checkUserDataScope(userId);
         }
+        eventPublisher.publishEvent(new BeforeSystemDelete(BeforeSystemDelete.Target.USER, userIds));
         // 删除用户与角色关联
         userRoleMapper.deleteUserRole(userIds);
         // 删除用户与岗位关联

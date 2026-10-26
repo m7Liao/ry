@@ -4,9 +4,12 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.context.ApplicationEventPublisher;
+import com.ruoyi.common.event.BeforeSystemDelete;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 import com.ruoyi.common.annotation.DataScope;
 import com.ruoyi.common.constant.UserConstants;
 import com.ruoyi.common.core.domain.TreeSelect;
@@ -29,6 +32,8 @@ import com.ruoyi.system.service.ISysDeptService;
 @Service
 public class SysDeptServiceImpl implements ISysDeptService
 {
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
     @Autowired
     private SysDeptMapper deptMapper;
 
@@ -314,8 +319,10 @@ public class SysDeptServiceImpl implements ISysDeptService
      * @return 结果
      */
     @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public int deleteDeptById(Long deptId)
     {
+        eventPublisher.publishEvent(new BeforeSystemDelete(BeforeSystemDelete.Target.DEPARTMENT, new Long[] {deptId}));
         return deptMapper.deleteDeptById(deptId);
     }
 
