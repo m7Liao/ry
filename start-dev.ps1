@@ -1,4 +1,4 @@
-param([switch]$Build)
+param([switch]$Build, [switch]$Lan)
 $ErrorActionPreference = 'Stop'
 $projectRoot = $PSScriptRoot
 $runtimeDir = Join-Path $projectRoot '.runtime'
@@ -52,7 +52,8 @@ if (!(Test-Port 80)) {
         return
     }
     $env:BROWSER = 'none'
-    $frontendProcess = Start-Process -FilePath (Get-Command node.exe).Source -ArgumentList 'node_modules/vite/bin/vite.js --host 127.0.0.1 --port 80 --strictPort' -WorkingDirectory $frontendDir -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $logDir 'frontend.out.log') -RedirectStandardError (Join-Path $logDir 'frontend.err.log')
+    $frontendHost = if ($Lan) { '0.0.0.0' } else { '127.0.0.1' }
+    $frontendProcess = Start-Process -FilePath (Get-Command node.exe).Source -ArgumentList "node_modules/vite/bin/vite.js --host $frontendHost --port 80 --strictPort" -WorkingDirectory $frontendDir -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $logDir 'frontend.out.log') -RedirectStandardError (Join-Path $logDir 'frontend.err.log')
     @{ Id = $frontendProcess.Id; Started = $frontendProcess.StartTime.ToUniversalTime().Ticks } | ConvertTo-Json | Set-Content (Join-Path $runtimeDir 'frontend-process.json')
 }
 foreach ($address in @('http://127.0.0.1:8080/captchaImage', 'http://127.0.0.1/')) {
@@ -67,3 +68,4 @@ foreach ($address in @('http://127.0.0.1:8080/captchaImage', 'http://127.0.0.1/'
 }
 Write-Host 'Ready. Frontend: http://localhost  Backend: http://localhost:8080'
 Write-Host 'Logs: .runtime/logs'
+if ($Lan) { Write-Host 'LAN frontend enabled. Use this computer IPv4 address in the QR mobile address field.' }

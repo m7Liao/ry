@@ -16,23 +16,22 @@ import com.ruoyi.common.enums.BusinessType;
 @RequestMapping("/attendance/employee")
 public class AttEmployeeController extends BaseController
 {
-    private final AttService service;
-    private final AttScopeService scope;
-    public AttEmployeeController(AttService service, AttScopeService scope) { this.service = service; this.scope = scope; }
+    private final IAttEmployeeService service;
+    public AttEmployeeController(IAttEmployeeService service) { this.service = service; }
 
     @PreAuthorize("@ss.hasPermi('attendance:employee:list')")
     @GetMapping("/list")
-    public TableDataInfo list(AttEmployee query) { startPage(); return getDataTable(scope.employees(query)); }
+    public TableDataInfo list(AttEmployee query) { startPage(); return getDataTable(service.selectEmployeeList(query)); }
 
     @PreAuthorize("@ss.hasAnyPermi('attendance:employee:query,attendance:employee:edit')")
     @GetMapping("/{id}")
-    public AjaxResult get(@PathVariable Long id) { return success(service.employee(id)); }
+    public AjaxResult get(@PathVariable Long id) { return success(service.getEmployee(id)); }
 
     @PreAuthorize("@ss.hasPermi('attendance:employee:add')")
     @GetMapping("/users")
     public AjaxResult users(String keyword) {
         SysUser query = new SysUser(); query.setUserName(keyword);
-        return success(scope.users(query));
+        return success(service.selectUserOptions(query));
     }
 
     @PreAuthorize("@ss.hasPermi('attendance:employee:add')")

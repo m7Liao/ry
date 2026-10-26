@@ -1,26 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.ruoyi.attendance.mapper.AttMapper">
-    <resultMap id="Site" type="com.ruoyi.attendance.domain.AttSite">
-        <id property="siteId" column="site_id" />
-        <result property="siteCode" column="site_code" />
-        <result property="siteName" column="site_name" />
-        <result property="deptId" column="dept_id" />
-        <result property="deptName" column="dept_name" />
-        <result property="address" column="address" />
-        <result property="longitude" column="longitude" />
-        <result property="latitude" column="latitude" />
-        <result property="coordinateSystem" column="coordinate_system" />
-        <result property="contactName" column="contact_name" />
-        <result property="contactPhone" column="contact_phone" />
-        <result property="status" column="status" />
-        <result property="employeeCount" column="employee_count" />
-        <result property="remark" column="remark" />
-        <result property="createBy" column="create_by" />
-        <result property="createTime" column="create_time" />
-        <result property="updateBy" column="update_by" />
-        <result property="updateTime" column="update_time" />
-    </resultMap>
+<mapper namespace="com.ruoyi.attendance.mapper.AttEmployeeMapper">
     <resultMap id="Employee" type="com.ruoyi.attendance.domain.AttEmployee">
         <id property="employeeId" column="employee_id" />
         <result property="employeeNo" column="employee_no" />
@@ -51,19 +31,16 @@
         <result property="deptId" column="dept_id" />
         <result property="deptName" column="dept_name" />
     </resultMap>
-    <select id="selectSites" resultMap="Site">
-        select s.*, d.dept_name,
-            (select count(*) from att_employee e where e.site_id = s.site_id) employee_count
-        from att_site s join sys_dept d on d.dept_id = s.dept_id
-        <where>
-            <if test="siteId != null">and s.site_id = #{siteId}</if>
-            <if test="siteCode != null and siteCode != ''">and s.site_code like concat('%', #{siteCode}, '%')</if>
-            <if test="siteName != null and siteName != ''">and s.site_name like concat('%', #{siteName}, '%')</if>
-            <if test="deptId != null">and s.dept_id = #{deptId}</if>
-            <if test="status != null and status != ''">and s.status = #{status}</if>
-            ${params.dataScope}
-        </where>
-        order by s.site_id desc
+    <select id="selectEmployeeByUserId" resultMap="Employee">
+        select e.*, u.user_name, u.status account_status, u.dept_id, d.dept_name,
+               s.site_name, s.status site_status
+        from att_employee e join sys_user u on u.user_id=e.user_id and u.del_flag='0'
+        left join sys_dept d on d.dept_id=u.dept_id
+        join att_site s on s.site_id=e.site_id
+        where e.user_id=#{userId}
+    </select>
+    <select id="lockEmployeeByUserId" resultMap="Employee">
+        select * from att_employee where user_id=#{userId} for update
     </select>
     <select id="selectEmployees" resultMap="Employee">
         select e.*, u.user_name, u.status account_status, u.dept_id, d.dept_name,
@@ -95,47 +72,9 @@
         ${params.dataScope}
         order by u.user_id limit 100
     </select>
-    <select id="selectDepartments" resultMap="Option">
-        select d.dept_id id, d.dept_name label, d.status
-        from sys_dept d where d.del_flag = '0' and d.status = '0'
-        <if test="deptId != null">and d.dept_id = #{deptId}</if>
-        ${params.dataScope}
-        order by d.order_num, d.dept_id
-    </select>
-    <select id="lockSite" resultMap="Site">
-        select * from att_site where site_id = #{id} for update
-    </select>
     <select id="lockEmployee" resultMap="Employee">
         select * from att_employee where employee_id = #{id} for update
     </select>
-    <select id="lockUser" resultMap="Option">
-        select user_id id, status, dept_id from sys_user where user_id = #{id} and del_flag = '0' for update
-    </select>
-    <select id="lockDepartment" resultMap="Option">
-        select dept_id id, status from sys_dept where dept_id = #{id} and del_flag = '0' for update
-    </select>
-    <select id="countSiteEmployees" resultType="int">select count(*) from att_employee where site_id = #{id}</select>
-    <select id="countUserEmployees" resultType="int">select count(*) from att_employee where user_id = #{id}</select>
-    <select id="countDepartmentSites" resultType="int">select count(*) from att_site where dept_id = #{id}</select>
-    <select id="countDuplicateSite" resultType="int">
-        select count(*) from att_site where site_code = #{code}
-        <if test="id != null">and site_id != #{id}</if>
-    </select>
-    <select id="countDuplicateEmployee" resultType="int">
-        select count(*) from att_employee where (employee_no = #{no} or user_id = #{userId})
-        <if test="id != null">and employee_id != #{id}</if>
-    </select>
-    <insert id="insertSite" useGeneratedKeys="true" keyProperty="siteId">
-        insert into att_site (site_code,site_name,dept_id,address,longitude,latitude,coordinate_system,contact_name,contact_phone,status,remark,create_by,create_time)
-        values (#{siteCode},#{siteName},#{deptId},#{address},#{longitude},#{latitude},#{coordinateSystem},#{contactName},#{contactPhone},#{status},#{remark},#{createBy},sysdate())
-    </insert>
-    <update id="updateSite">
-        update att_site set site_code=#{siteCode},site_name=#{siteName},dept_id=#{deptId},address=#{address},
-        longitude=#{longitude},latitude=#{latitude},coordinate_system=#{coordinateSystem},contact_name=#{contactName},
-        contact_phone=#{contactPhone},status=#{status},remark=#{remark},update_by=#{updateBy},update_time=sysdate()
-        where site_id=#{siteId}
-    </update>
-    <delete id="deleteSite">delete from att_site where site_id=#{id}</delete>
     <insert id="insertEmployee" useGeneratedKeys="true" keyProperty="employeeId">
         insert into att_employee (employee_no,employee_name,user_id,site_id,phone,email,hire_date,leave_date,status,remark,create_by,create_time)
         values (#{employeeNo},#{employeeName},#{userId},#{siteId},#{phone},#{email},#{hireDate},#{leaveDate},#{status},#{remark},#{createBy},sysdate())
@@ -146,4 +85,9 @@
         remark=#{remark},update_by=#{updateBy},update_time=sysdate() where employee_id=#{employeeId}
     </update>
     <delete id="deleteEmployee">delete from att_employee where employee_id=#{id}</delete>
+    <select id="countUserEmployees" resultType="int">select count(*) from att_employee where user_id = #{id}</select>
+    <select id="countDuplicateEmployee" resultType="int">
+        select count(*) from att_employee where (employee_no = #{no} or user_id = #{userId})
+        <if test="id != null">and employee_id != #{id}</if>
+    </select>
 </mapper>

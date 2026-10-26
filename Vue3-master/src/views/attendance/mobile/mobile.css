@@ -1,0 +1,22 @@
+.attendance-mobile { min-height: 100dvh; background: #f3f6fa; color: #243449; padding: max(20px, env(safe-area-inset-top)) 18px max(28px, env(safe-area-inset-bottom)); font-size: 15px; }
+.attendance-mobile * { box-sizing: border-box; }
+.attendance-mobile .mobile-wrap { width: 100%; max-width: 480px; margin: 0 auto; }
+.attendance-mobile .mobile-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 24px; }
+.attendance-mobile h1 { font-size: 25px; line-height: 1.4; margin: 0 0 7px; color: #1b304b; }
+.attendance-mobile h2 { font-size: 19px; margin: 0 0 20px; }
+.attendance-mobile .mobile-subtitle { font-size: 13px; line-height: 1.7; color: #6b7b8f; margin: 0; }
+.attendance-mobile .mobile-card { padding: 24px; border: 1px solid #e7edf4; border-radius: 16px; background: #fff; margin-bottom: 16px; box-shadow: 0 3px 16px #20334d05; }
+.attendance-mobile .mobile-card dl { margin: 0; }
+.attendance-mobile .mobile-card dl > div { padding: 12px 0; border-bottom: 1px solid #edf1f5; display: flex; justify-content: space-between; gap: 24px; }
+.attendance-mobile .mobile-card dl > div:last-child { border-bottom: 0; }
+.attendance-mobile dt { color: #718096; flex-shrink: 0; }
+.attendance-mobile dd { margin: 0; text-align: right; overflow-wrap: anywhere; line-height: 1.5; }
+.attendance-mobile .mobile-primary { width: 100%; min-height: 48px; margin-top: 22px; font-size: 16px; }
+.attendance-mobile .mobile-notice { line-height: 1.8; color: #66778b; font-size: 14px; }
+.attendance-mobile .mobile-error { color: #b54737; background: #fff4f0; padding: 14px 16px; border-radius: 10px; line-height: 1.7; margin: 16px 0; }
+.attendance-mobile .mobile-success { color: #26764b; font-weight: 600; font-size: 22px; margin-bottom: 18px; }
+.attendance-mobile .mobile-actions { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; padding: 12px 0; }
+.attendance-mobile .el-input__inner { font-size: 16px; }
+.attendance-mobile .el-form-item { margin-bottom: 24px; }
+.attendance-mobile .el-form-item__label { font-size: 14px; color: #42536a; }
+@media (max-width: 360px) { .attendance-mobile { padding-left: 12px; padding-right: 12px; } .attendance-mobile .mobile-card { padding: 18px; } }

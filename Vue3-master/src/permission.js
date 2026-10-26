@@ -20,6 +20,13 @@ const isWhiteList = (path) => {
 
 router.beforeEach(async (to, from) => {
   NProgress.start()
+  if (to.path.startsWith('/h5/')) {
+    to.meta.title && useSettingsStore().setTitle(to.meta.title)
+    if (to.path === '/h5/login') return true
+    if (getToken() && !useLockStore().isLock) return true
+    NProgress.done()
+    return { path: '/h5/login', query: { redirect: to.fullPath } }
+  }
   if (getToken()) {
     to.meta.title && useSettingsStore().setTitle(to.meta.title)
     const isLock = useLockStore().isLock

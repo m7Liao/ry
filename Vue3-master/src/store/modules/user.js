@@ -30,6 +30,12 @@ const useUserStore = defineStore(
           login(username, password, code, uuid).then(res => {
             setToken(res.token)
             this.token = res.token
+            // 移动端切换账号后重新加载对应身份的菜单和权限。
+            this.roles = []
+            this.permissions = []
+            this.id = ''
+            this.name = ''
+            this.nickName = ''
             useLockStore().unlockScreen()
             resolve()
           }).catch(error => {

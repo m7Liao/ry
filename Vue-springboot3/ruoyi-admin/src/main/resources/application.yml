@@ -144,3 +144,8 @@ xss:
   excludes: /system/notice
   # 匹配链接
   urlPatterns: /system/*,/monitor/*,/tool/*,/attendance/*
+
+# 考勤扫码凭证有效期（秒），允许10至120，默认60。
+attendance:
+  qr:
+    valid-seconds: 60

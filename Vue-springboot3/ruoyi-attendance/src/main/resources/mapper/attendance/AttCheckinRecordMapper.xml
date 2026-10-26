@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.attendance.mapper.AttCheckinRecordMapper">
+    <resultMap id="Record" type="com.ruoyi.attendance.domain.AttCheckinRecord">
+        <id property="recordId" column="record_id" />
+        <result property="sessionId" column="session_id" />
+        <result property="employeeId" column="employee_id" />
+        <result property="userId" column="user_id" />
+        <result property="deptId" column="dept_id" />
+        <result property="siteId" column="site_id" />
+        <result property="employeeNo" column="employee_no" />
+        <result property="employeeName" column="employee_name" />
+        <result property="userName" column="user_name" />
+        <result property="deptName" column="dept_name" />
+        <result property="siteName" column="site_name" />
+        <result property="sessionTitle" column="session_title" />
+        <result property="checkinTime" column="checkin_time" />
+        <result property="checkinMethod" column="checkin_method" />
+    </resultMap>
+    <sql id="Filters">
+        <if test="recordId != null">and r.record_id=#{recordId}</if>
+        <if test="sessionId != null">and r.session_id=#{sessionId}</if>
+        <if test="siteId != null">and r.site_id=#{siteId}</if>
+        <if test="employeeNo != null and employeeNo != ''">and r.employee_no like concat('%',#{employeeNo},'%')</if>
+        <if test="employeeName != null and employeeName != ''">and r.employee_name like concat('%',#{employeeName},'%')</if>
+        <if test="beginDate != null and beginDate != ''">and r.checkin_time &gt;= #{beginDate}</if>
+        <if test="endDate != null and endDate != ''">and r.checkin_time &lt; date_add(#{endDate}, interval 1 day)</if>
+    </sql>
+    <select id="selectRecordList" resultMap="Record">
+        select r.* from att_checkin_record r
+        <where><include refid="Filters" />${params.dataScope}</where>
+        order by r.record_id desc
+    </select>
+    <select id="selectMyRecordList" resultMap="Record">
+        select r.* from att_checkin_record r where r.user_id=#{userId}
+        <include refid="Filters" />
+        order by r.record_id desc
+    </select>
+    <select id="selectBySessionEmployee" resultMap="Record">
+        select * from att_checkin_record where session_id=#{sessionId} and employee_id=#{employeeId}
+    </select>
+    <insert id="insertRecord" useGeneratedKeys="true" keyProperty="recordId">
+        insert into att_checkin_record(session_id,employee_id,user_id,dept_id,site_id,employee_no,employee_name,
+            user_name,dept_name,site_name,session_title,checkin_time,checkin_method)
+        values(#{sessionId},#{employeeId},#{userId},#{deptId},#{siteId},#{employeeNo},#{employeeName},
+            #{userName},#{deptName},#{siteName},#{sessionTitle},#{checkinTime},'QR')
+    </insert>
+    <select id="countEmployeeRecords" resultType="int">select count(*) from att_checkin_record where employee_id=#{employeeId}</select>
+</mapper>

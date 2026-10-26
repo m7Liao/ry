@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { ElNotification , ElMessageBox, ElMessage, ElLoading } from 'element-plus'
-import { getToken } from '@/utils/auth'
+import { getToken, removeToken } from '@/utils/auth'
+import { safeH5Redirect } from '@/utils/h5'
 import errorCode from '@/utils/errorCode'
 import { tansParams, blobValidate } from '@/utils/ruoyi'
 import cache from '@/plugins/cache'
@@ -83,6 +84,16 @@ service.interceptors.response.use(res => {
       return res.data
     }
     if (code === 401) {
+      if (location.pathname.startsWith('/h5/')) {
+        if (!isRelogin.show) {
+          isRelogin.show = true
+          removeToken()
+          const user = useUserStore()
+          user.token = ''; user.roles = []; user.permissions = []
+          location.replace('/h5/login?redirect=' + encodeURIComponent(safeH5Redirect(location.pathname + location.search)))
+        }
+        return Promise.reject(new Error('登录状态已过期，请重新登录'))
+      }
       if (!isRelogin.show) {
         isRelogin.show = true
         ElMessageBox.confirm('登录状态已过期，您可以继续留在该页面，或者重新登录', '系统提示', { confirmButtonText: '重新登录', cancelButtonText: '取消', type: 'warning' }).then(() => {
@@ -95,6 +106,8 @@ service.interceptors.response.use(res => {
       })
     }
       return Promise.reject('无效的会话，或者会话已过期，请重新登录。')
+    } else if (res.config.quiet && code !== 200) {
+      return Promise.reject(new Error(res.data.msg || msg))
     } else if (code === 500) {
       ElMessage({ message: msg, type: 'error' })
       return Promise.reject(new Error(msg))
@@ -118,7 +131,7 @@ service.interceptors.response.use(res => {
     } else if (message.includes("Request failed with status code")) {
       message = "系统接口" + message.slice(-3) + "异常"
     }
-    ElMessage({ message: message, type: 'error', duration: 5 * 1000 })
+    if (!error.config?.quiet) ElMessage({ message: message, type: 'error', duration: 5 * 1000 })
     return Promise.reject(error)
   }
 )

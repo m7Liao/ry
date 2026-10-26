@@ -20,7 +20,8 @@
       <el-table-column label="详细地址" prop="address" min-width="220" show-overflow-tooltip />
       <el-table-column label="绑定人数" prop="employeeCount" width="95" align="center" />
       <el-table-column label="状态" width="90"><template #default="{ row }"><el-tag :type="row.status === '0' ? 'success' : 'info'">{{ row.status === '0' ? '启用' : '停用' }}</el-tag></template></el-table-column>
-      <el-table-column label="操作" width="205" fixed="right"><template #default="{ row }">
+      <el-table-column label="操作" width="275" fixed="right"><template #default="{ row }">
+        <el-button link type="primary" v-hasPermi="['attendance:session:list']" @click="$router.push({ path: '/attendance/session', query: { siteId: row.siteId } })">签到场次</el-button>
         <el-button link type="primary" v-hasPermi="['attendance:site:query']" @click="openEdit(row, true)">详情</el-button>
         <el-button link type="primary" v-hasPermi="['attendance:site:edit']" @click="openEdit(row)">修改</el-button>
         <el-button link type="danger" v-hasPermi="['attendance:site:remove']" @click="remove([row.siteId])">删除</el-button>

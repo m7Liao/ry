@@ -13,6 +13,11 @@ import com.ruoyi.common.core.domain.AjaxResult;
 @RestControllerAdvice(basePackages = "com.ruoyi.attendance.controller")
 public class AttExceptionHandler
 {
+    @ExceptionHandler(org.springframework.data.redis.RedisConnectionFailureException.class)
+    public AjaxResult cacheUnavailable(org.springframework.data.redis.RedisConnectionFailureException e)
+    {
+        return AjaxResult.error("签到缓存暂时不可用，请稍后重试");
+    }
     @ExceptionHandler(DuplicateKeyException.class)
     public AjaxResult duplicate(DuplicateKeyException e) { return AjaxResult.error("编码、工号或账号绑定已存在，请刷新后重试"); }
     @ExceptionHandler(DataIntegrityViolationException.class)

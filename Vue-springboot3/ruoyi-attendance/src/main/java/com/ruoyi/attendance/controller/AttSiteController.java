@@ -17,28 +17,28 @@ import com.ruoyi.common.enums.BusinessType;
 @RequestMapping("/attendance/site")
 public class AttSiteController extends BaseController
 {
-    private final AttService service;
-    private final AttScopeService scope;
-    public AttSiteController(AttService service, AttScopeService scope) { this.service = service; this.scope = scope; }
+    private final IAttSiteService service;
+    private final IAttOptionService optionService;
+    public AttSiteController(IAttSiteService service, IAttOptionService optionService) { this.service = service; this.optionService = optionService; }
 
     @PreAuthorize("@ss.hasPermi('attendance:site:list')")
     @GetMapping("/list")
-    public TableDataInfo list(AttSite query) { startPage(); return getDataTable(scope.sites(query)); }
+    public TableDataInfo list(AttSite query) { startPage(); return getDataTable(service.selectSiteList(query)); }
 
     @PreAuthorize("@ss.hasAnyPermi('attendance:site:query,attendance:site:edit')")
     @GetMapping("/{id}")
-    public AjaxResult get(@PathVariable Long id) { return success(service.site(id)); }
+    public AjaxResult get(@PathVariable Long id) { return success(service.getSite(id)); }
 
-    @PreAuthorize("@ss.hasAnyPermi('attendance:site:add,attendance:site:edit,attendance:site:list,attendance:employee:list')")
+    @PreAuthorize("@ss.hasAnyPermi('attendance:site:add,attendance:site:edit,attendance:site:list,attendance:employee:list,attendance:record:list')")
     @GetMapping("/departments")
-    public AjaxResult departments() { return success(scope.departments(new SysDept())); }
+    public AjaxResult departments() { return success(optionService.selectDepartmentOptions(new SysDept())); }
 
-    @PreAuthorize("@ss.hasAnyPermi('attendance:employee:add,attendance:employee:edit,attendance:employee:list')")
+    @PreAuthorize("@ss.hasAnyPermi('attendance:employee:add,attendance:employee:edit,attendance:employee:list,attendance:session:list,attendance:session:add,attendance:session:qrcode,attendance:record:list')")
     @GetMapping("/options")
     public AjaxResult options(String keyword) {
         AttSite query = new AttSite(); query.setSiteName(keyword);
         PageHelper.startPage(1, 100, false);
-        return success(scope.sites(query).stream().map(s -> {
+        return success(service.selectSiteList(query).stream().map(s -> {
             com.ruoyi.attendance.domain.AttOption option = new com.ruoyi.attendance.domain.AttOption();
             option.setId(s.getSiteId()); option.setLabel(s.getSiteName() + " / " + s.getSiteCode());
             option.setStatus(s.getStatus()); return option;

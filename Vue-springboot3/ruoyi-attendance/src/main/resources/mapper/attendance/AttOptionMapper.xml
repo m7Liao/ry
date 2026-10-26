@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.attendance.mapper.AttOptionMapper">
+    <resultMap id="Option" type="com.ruoyi.attendance.domain.AttOption">
+        <id property="id" column="id" />
+        <result property="label" column="label" />
+        <result property="status" column="status" />
+        <result property="deptId" column="dept_id" />
+        <result property="deptName" column="dept_name" />
+    </resultMap>
+    <select id="selectUser" resultMap="Option">
+        select user_id id, user_name label, status, dept_id from sys_user where user_id=#{id} and del_flag='0'
+    </select>
+    <select id="selectDepartment" resultMap="Option">
+        select dept_id id, dept_name label, status from sys_dept where dept_id=#{id} and del_flag='0'
+    </select>
+    <select id="selectDepartments" resultMap="Option">
+        select d.dept_id id, d.dept_name label, d.status
+        from sys_dept d where d.del_flag = '0' and d.status = '0'
+        <if test="deptId != null">and d.dept_id = #{deptId}</if>
+        ${params.dataScope}
+        order by d.order_num, d.dept_id
+    </select>
+    <select id="lockUser" resultMap="Option">
+        select user_id id, status, dept_id from sys_user where user_id = #{id} and del_flag = '0' for update
+    </select>
+    <select id="lockDepartment" resultMap="Option">
+        select dept_id id, status from sys_dept where dept_id = #{id} and del_flag = '0' for update
+    </select>
+</mapper>

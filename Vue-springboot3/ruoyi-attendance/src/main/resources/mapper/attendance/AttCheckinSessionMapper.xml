@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.attendance.mapper.AttCheckinSessionMapper">
+    <resultMap id="Session" type="com.ruoyi.attendance.domain.AttCheckinSession">
+        <id property="sessionId" column="session_id" />
+        <result property="siteId" column="site_id" />
+        <result property="deptId" column="dept_id" />
+        <result property="title" column="title" />
+        <result property="startTime" column="start_time" />
+        <result property="endTime" column="end_time" />
+        <result property="status" column="status" />
+        <result property="siteName" column="site_name" />
+        <result property="siteCode" column="site_code" />
+        <result property="recordCount" column="record_count" />
+        <result property="createBy" column="create_by" />
+        <result property="createTime" column="create_time" />
+        <result property="updateBy" column="update_by" />
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+    <select id="selectSessionList" resultMap="Session">
+        select c.*,s.site_name,s.site_code,
+            (select count(*) from att_checkin_record r where r.session_id=c.session_id) record_count
+        from att_checkin_session c join att_site s on s.site_id=c.site_id
+        <where>
+            <if test="sessionId != null">and c.session_id=#{sessionId}</if>
+            <if test="siteId != null">and c.site_id=#{siteId}</if>
+            <if test="title != null and title != ''">and c.title like concat('%',#{title},'%')</if>
+            <if test="status != null and status != ''">and c.status=#{status}</if>
+            ${params.dataScope}
+        </where>
+        order by c.session_id desc
+    </select>
+    <select id="selectSessionById" resultMap="Session">
+        select c.*,s.site_name,s.site_code from att_checkin_session c join att_site s on s.site_id=c.site_id
+        where c.session_id=#{sessionId}
+    </select>
+    <select id="lockSession" resultMap="Session">
+        select * from att_checkin_session where session_id=#{sessionId} for update
+    </select>
+    <insert id="insertSession" useGeneratedKeys="true" keyProperty="sessionId">
+        insert into att_checkin_session(site_id,dept_id,title,start_time,end_time,status,create_by,create_time)
+        values(#{siteId},#{deptId},#{title},#{startTime},#{endTime},'0',#{createBy},#{startTime})
+    </insert>
+    <update id="closeSession">
+        update att_checkin_session set status='1',update_by=#{updateBy},update_time=sysdate() where session_id=#{sessionId}
+    </update>
+    <select id="countSiteSessions" resultType="int">select count(*) from att_checkin_session where site_id=#{siteId}</select>
+</mapper>
