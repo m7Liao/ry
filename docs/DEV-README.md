@@ -33,20 +33,21 @@
 ```powershell
 ./verify-dev.ps1
 ./test/verify-attendance.ps1
+./test/verify-rule.ps1
 ```
 
 ## 本机配置
 
-- MySQL 8.0.37：`127.0.0.1:3306`，数据库 `ry-vue`，已导入系统、Quartz、考勤基础数据及扫码签到脚本，共35张表。
+- MySQL 8.0.37：`127.0.0.1:3306`，数据库 `ry-vue`，已导入系统、Quartz、考勤基础数据、扫码签到及规则配置脚本，共36张表。
 - 数据库连接信息放在 `.runtime/application-local.yml`，由启动脚本加载；`.runtime/` 已加入根目录 `.gitignore`。
 - 本机 Redis 8.2.1 的 MSYS2 程序启动崩溃，启动脚本使用本机已有的 `D:/redis/Redis-x64-5.0.14.1/redis-server.exe`，监听 `127.0.0.1:6379`。
 - 启动脚本创建的 Redis 仅用于本地开发，不保存缓存；停止脚本只停止本项目记录的进程，保留 MySQL 系统服务。
 - 日志：`.runtime/logs/`；上传目录：`.runtime/uploads/`；Maven 和 npm 缓存也放在 `.runtime/`。
 - 前端端口 `80`，通过 `/dev-api` 代理到后端端口 `8080`。
 
-空库初始化依次使用 `Vue-springboot3/sql/ry_20260417.sql`、`quartz.sql`、`attendance-base.sql` 和 `attendance-checkin.sql`。前两份脚本会删除并重建系统或调度表。已安装考勤基础模块的库本次仅执行 `attendance-checkin.sql`，不要重跑系统初始化。旧演示数据可使用 `cleanup-demo.sql` 按原始记录标识清理。
+空库初始化依次使用 `Vue-springboot3/sql/ry_20260417.sql`、`quartz.sql`、`attendance-base.sql`、`attendance-checkin.sql` 和 `attendance-rule.sql`。前两份脚本会删除并重建系统或调度表。已安装扫码签到模块的库本次仅执行 `attendance-rule.sql`，不要重跑系统初始化。旧演示数据可使用 `cleanup-demo.sql` 按原始记录标识清理。
 
-已实现“考勤管理 → 办公场所 / 员工档案 / 签到场次与二维码 / 签到记录”。先建立部门与账号、场所、员工档案和绑定，再创建场次并展示二维码。详见 [基础数据说明](办公场所与员工档案使用说明.md) 和 [扫码签到说明](扫码签到使用说明.md)。
+已实现“考勤管理 → 办公场所 / 员工档案 / 签到场次与二维码 / 签到记录 / 考勤规则配置”。先建立部门与账号、场所、员工档案和绑定，再创建场次并展示二维码。详见 [基础数据说明](办公场所与员工档案使用说明.md)、[扫码签到说明](扫码签到使用说明.md) 和 [规则配置说明](考勤规则配置使用说明.md)。规则配置按场所保存固定班次参数并预览计划工时，目前不自动计算每日考勤结果。
 
 H5 入口为 `/h5/checkin`，登录为 `/h5/login`，本人记录为 `/h5/records`。员工需授权 `attendance:checkin:submit`。真实手机访问时，先停止服务再执行 `./start-dev.ps1 -Lan`，并在二维码窗口填写手机能访问的电脑局域网前端地址。默认 `localhost` 仅适合本机。
 

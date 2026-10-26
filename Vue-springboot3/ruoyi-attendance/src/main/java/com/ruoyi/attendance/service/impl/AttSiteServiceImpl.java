@@ -24,13 +24,15 @@ public class AttSiteServiceImpl implements IAttSiteService
     private final AttOptionMapper optionMapper;
     private final IAttOptionService optionService;
     private final AttCheckinSessionMapper sessionMapper;
+    private final AttRuleMapper ruleMapper;
     public AttSiteServiceImpl(AttSiteMapper mapper, AttOptionMapper optionMapper, IAttOptionService optionService,
-            AttCheckinSessionMapper sessionMapper)
+            AttCheckinSessionMapper sessionMapper, AttRuleMapper ruleMapper)
     {
         this.mapper = mapper;
         this.optionMapper = optionMapper;
         this.optionService = optionService;
         this.sessionMapper = sessionMapper;
+        this.ruleMapper = ruleMapper;
     }
 
     @Override
@@ -79,6 +81,7 @@ public class AttSiteServiceImpl implements IAttSiteService
         for (Long id : Arrays.stream(ids).distinct().sorted().toList()) {
             if (mapper.lockSite(id) == null) throw new ServiceException("场所已被删除");
             getSite(id);
+            if (ruleMapper.countSiteRules(id) > 0) throw new ServiceException("场所已配置考勤规则，请先删除规则或保留场所并停用");
             if (mapper.countSiteEmployees(id) > 0) throw new ServiceException("场所仍绑定员工，请先修改或删除员工档案");
             if (sessionMapper.countSiteSessions(id) > 0) throw new ServiceException("场所已有签到场次，请保留资料并使用停用操作");
             count += mapper.deleteSite(id);

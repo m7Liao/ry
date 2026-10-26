@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.attendance.mapper.AttRuleMapper">
+    <resultMap id="Rule" type="com.ruoyi.attendance.domain.AttRule">
+        <id property="ruleId" column="rule_id" />
+        <result property="siteId" column="site_id" />
+        <result property="ruleName" column="rule_name" />
+        <result property="workDays" column="work_days" />
+        <result property="startTime" column="start_time" />
+        <result property="endTime" column="end_time" />
+        <result property="endNextDay" column="end_next_day" />
+        <result property="lateGraceMinutes" column="late_grace_minutes" />
+        <result property="earlyGraceMinutes" column="early_grace_minutes" />
+        <result property="startBeforeMinutes" column="start_before_minutes" />
+        <result property="startAfterMinutes" column="start_after_minutes" />
+        <result property="endBeforeMinutes" column="end_before_minutes" />
+        <result property="endAfterMinutes" column="end_after_minutes" />
+        <result property="restMinutes" column="rest_minutes" />
+        <result property="status" column="status" />
+        <result property="version" column="version" />
+        <result property="remark" column="remark" />
+        <result property="createBy" column="create_by" />
+        <result property="createTime" column="create_time" />
+        <result property="updateBy" column="update_by" />
+        <result property="updateTime" column="update_time" />
+        <result property="siteName" column="site_name" />
+        <result property="siteCode" column="site_code" />
+        <result property="siteStatus" column="site_status" />
+        <result property="deptName" column="dept_name" />
+    </resultMap>
+    <select id="selectRuleList" resultMap="Rule">
+        select r.*, s.site_name, s.site_code, s.status site_status, d.dept_name
+        from att_rule r join att_site s on s.site_id=r.site_id
+        join sys_dept d on d.dept_id=s.dept_id
+        <where>
+            <if test="ruleId != null">and r.rule_id=#{ruleId}</if>
+            <if test="siteId != null">and r.site_id=#{siteId}</if>
+            <if test="ruleName != null and ruleName != ''">and r.rule_name like concat('%',#{ruleName},'%')</if>
+            <if test="status != null and status != ''">and r.status=#{status}</if>
+            ${params.dataScope}
+        </where>
+        order by r.rule_id desc
+    </select>
+    <select id="countSiteRules" resultType="int">select count(*) from att_rule where site_id=#{siteId}</select>
+    <insert id="insertRule" useGeneratedKeys="true" keyProperty="ruleId">
+        insert into att_rule(site_id,rule_name,work_days,start_time,end_time,end_next_day,
+            late_grace_minutes,early_grace_minutes,start_before_minutes,start_after_minutes,
+            end_before_minutes,end_after_minutes,rest_minutes,status,version,remark,create_by,create_time)
+        values(#{siteId},#{ruleName},#{workDays},#{startTime},#{endTime},#{endNextDay},
+            #{lateGraceMinutes},#{earlyGraceMinutes},#{startBeforeMinutes},#{startAfterMinutes},
+            #{endBeforeMinutes},#{endAfterMinutes},#{restMinutes},#{status},0,#{remark},#{createBy},sysdate())
+    </insert>
+    <update id="updateRule">
+        update att_rule set rule_name=#{ruleName},work_days=#{workDays},start_time=#{startTime},end_time=#{endTime},
+            end_next_day=#{endNextDay},late_grace_minutes=#{lateGraceMinutes},early_grace_minutes=#{earlyGraceMinutes},
+            start_before_minutes=#{startBeforeMinutes},start_after_minutes=#{startAfterMinutes},
+            end_before_minutes=#{endBeforeMinutes},end_after_minutes=#{endAfterMinutes},rest_minutes=#{restMinutes},
+            status=#{status},remark=#{remark},version=version+1,update_by=#{updateBy},update_time=sysdate()
+        where rule_id=#{ruleId} and version=#{version}
+    </update>
+    <delete id="deleteRule">delete from att_rule where rule_id=#{ruleId}</delete>
+</mapper>
