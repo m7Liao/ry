@@ -4,7 +4,7 @@
     <p v-if="error" class="mobile-error" role="alert">{{ error }}</p>
     <el-empty v-if="!loading && !rows.length && !error" description="暂无签到记录" />
     <article v-for="r in rows" :key="r.recordId" class="mobile-card"><h2>{{ r.sessionTitle }}</h2><dl><div><dt>办公场所</dt><dd>{{ r.siteName }}</dd></div><div><dt>签到时间</dt><dd>{{ r.checkinTime }}</dd></div><div><dt>记录编号</dt><dd>{{ r.recordId }}</dd></div></dl></article>
-    <div class="mobile-actions"><el-button @click="refresh" :loading="loading">刷新</el-button><el-button v-if="rows.length < total" type="primary" plain :loading="loading" @click="more">加载更多</el-button></div>
+    <div class="mobile-actions"><el-button @click="refresh" :loading="loading">刷新</el-button><el-button v-if="rows.length < total" type="primary" plain :loading="loading" @click="more">加载更多</el-button><el-button text type="primary" @click="$router.push('/h5/daily')">我的每日考勤</el-button></div>
     <p v-if="rows.length" class="mobile-notice" style="text-align:center">已显示 {{ rows.length }} / {{ total }} 条</p>
   </div></main>
 </template>

@@ -14,6 +14,7 @@
     </el-row>
     <el-table v-loading="loading" :data="rows" @selection-change="selection => selected = selection.map(s => s.siteId)">
       <el-table-column type="selection" width="48" />
+      <el-table-column label="场所ID" prop="siteId" width="90" />
       <el-table-column label="场所编码" prop="siteCode" min-width="130" show-overflow-tooltip />
       <el-table-column label="场所名称" prop="siteName" min-width="160" show-overflow-tooltip />
       <el-table-column label="管理部门" prop="deptName" min-width="130" />

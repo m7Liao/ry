@@ -25,9 +25,10 @@ public class AttCheckinServiceImpl implements IAttCheckinService
     private final AttSiteMapper siteMapper;
     private final AttOptionMapper optionMapper;
     private final AttTicketStore tickets;
+    private final AttFaceService faceService;
 
     public AttCheckinServiceImpl(AttCheckinSessionMapper sessionMapper, AttCheckinRecordMapper recordMapper,
-            AttEmployeeMapper employeeMapper, AttSiteMapper siteMapper, AttOptionMapper optionMapper, AttTicketStore tickets)
+            AttEmployeeMapper employeeMapper, AttSiteMapper siteMapper, AttOptionMapper optionMapper, AttTicketStore tickets, AttFaceService faceService)
     {
         this.sessionMapper = sessionMapper;
         this.recordMapper = recordMapper;
@@ -35,6 +36,7 @@ public class AttCheckinServiceImpl implements IAttCheckinService
         this.siteMapper = siteMapper;
         this.optionMapper = optionMapper;
         this.tickets = tickets;
+        this.faceService = faceService;
     }
 
     @Override
@@ -72,6 +74,25 @@ public class AttCheckinServiceImpl implements IAttCheckinService
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public AttCheckinResult submit(String ticket)
     {
+        return save(ticket, null);
+    }
+
+    @Override
+    public java.util.Map<String,Object> faceStatus()
+    {
+        return faceService.myStatus(currentEmployee(false).getEmployeeId());
+    }
+
+    @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public AttCheckinResult submitWithFace(String ticket, org.springframework.web.multipart.MultipartFile image)
+    {
+        if (!faceService.required()) throw new ServiceException("人脸核验尚未启用");
+        return save(ticket, image);
+    }
+
+    private AttCheckinResult save(String ticket, org.springframework.web.multipart.MultipartFile image)
+    {
         AttQrTicket credential = tickets.resolve(ticket);
         // 与关闭场次共用场次行锁，关闭完成后不会再写入新签到。
         AttCheckinSession session = sessionMapper.lockSession(credential.getSessionId());
@@ -92,6 +113,15 @@ public class AttCheckinServiceImpl implements IAttCheckinService
         requireOpen(session);
         AttCheckinRecord existing = recordMapper.selectBySessionEmployee(session.getSessionId(), employee.getEmployeeId());
         if (existing != null) return result(existing, true);
+        AttFaceService.Verification verification = null;
+        if (faceService.required())
+        {
+            if (image == null) throw new ServiceException("当前签到必须完成人脸核验，请使用人脸签到入口");
+            verification = faceService.verify(employee.getEmployeeId(), image);
+            // 识别耗时不能延长二维码或场次的有效期。
+            tickets.resolve(ticket);
+            requireOpen(session);
+        }
         AttCheckinRecord record = new AttCheckinRecord();
         record.setSessionId(session.getSessionId());
         record.setSessionTitle(session.getTitle());
@@ -105,8 +135,9 @@ public class AttCheckinServiceImpl implements IAttCheckinService
         record.setSiteId(session.getSiteId());
         record.setSiteName(site.getSiteName());
         record.setCheckinTime(new Date());
-        record.setCheckinMethod("QR");
+        record.setCheckinMethod(verification == null ? "QR" : "QR_FACE");
         recordMapper.insertRecord(record);
+        if (verification != null) faceService.saveVerification(record.getRecordId(), verification);
         return result(record, false);
     }
 

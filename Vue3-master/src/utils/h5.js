@@ -3,7 +3,7 @@ export function safeH5Redirect(value) {
   if (typeof value !== 'string') return '/h5/checkin'
   try {
     const url = new URL(value, window.location.origin)
-    if (url.origin !== window.location.origin || !['/h5/checkin', '/h5/records'].includes(url.pathname)) return '/h5/checkin'
+    if (url.origin !== window.location.origin || !['/h5/checkin', '/h5/records', '/h5/daily', '/h5/monthly'].includes(url.pathname)) return '/h5/checkin'
     return url.pathname + url.search
   } catch {
     return '/h5/checkin'

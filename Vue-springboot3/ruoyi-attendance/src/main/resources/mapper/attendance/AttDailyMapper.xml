@@ -63,6 +63,15 @@
         </where>
         order by r.attendance_date desc,r.result_id desc
     </select>
+    <select id="selectMyResultList" resultMap="Daily">
+        select result_id,attendance_date,site_name,result_status,scheduled_start,scheduled_end,in_time,out_time,
+            missing_in,missing_out,late_minutes,early_minutes,planned_work_minutes,work_minutes,calculated_time
+        from att_daily_result where user_id=#{userId}
+        <if test="query.beginDate != null">and attendance_date &gt;= #{query.beginDate}</if>
+        <if test="query.endDate != null">and attendance_date &lt;= #{query.endDate}</if>
+        <if test="query.resultStatus != null and query.resultStatus != ''">and result_status=#{query.resultStatus}</if>
+        order by attendance_date desc,result_id desc
+    </select>
     <select id="selectCandidates" resultMap="com.ruoyi.attendance.mapper.AttEmployeeMapper.Employee">
         select e.*,u.user_name,u.dept_id,d.dept_name,s.site_name
         from att_employee e join sys_user u on u.user_id=e.user_id and u.del_flag='0'
@@ -80,6 +89,7 @@
     <select id="lockResult" resultMap="Daily">
         select * from att_daily_result where result_id=#{resultId} for update
     </select>
+    <select id="selectResultById" resultMap="Daily">select * from att_daily_result where result_id=#{resultId}</select>
     <select id="selectPunches" resultMap="com.ruoyi.attendance.mapper.AttCheckinRecordMapper.Record">
         select p.* from att_checkin_record p where p.employee_id=#{employeeId} and p.site_id=#{siteId}
         and p.checkin_time &gt;= #{from} and p.checkin_time &lt; #{until} and p.checkin_time &lt;= #{now}

@@ -1,6 +1,6 @@
 <template>
   <div class="app-container">
-    <el-alert class="daily-notice" title="结果由手动计算生成。打卡窗口尚未结束时为“待结算”，结束后需按快照重算。缺卡工时显示“待确认”，休息日不核算加班。" type="info" :closable="false" show-icon />
+    <el-alert class="daily-notice" title="结果可由手动计算或配置后的自动日结生成。未结束窗口为“待结算”，窗口结束后按快照结算；缺卡工时显示“待确认”，休息日不核算加班。" type="info" :closable="false" show-icon />
     <el-form ref="queryRef" :model="query" :inline="true" v-show="showSearch">
       <el-form-item label="工号" prop="employeeNo"><el-input v-model="query.employeeNo" clearable style="width: 150px" @keyup.enter="search" /></el-form-item>
       <el-form-item label="姓名" prop="employeeName"><el-input v-model="query.employeeName" clearable style="width: 150px" @keyup.enter="search" /></el-form-item>

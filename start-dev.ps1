@@ -43,7 +43,7 @@ if (!(Test-Port 8080)) {
     $env:RUOYI_LOG_PATH = '../.runtime/logs'
     $javaExe = Join-Path $env:JAVA_HOME 'bin/java.exe'
     if (!(Test-Path $javaExe)) { throw 'JAVA_HOME must point to JDK 17.' }
-    $backendProcess = Start-Process -FilePath $javaExe -ArgumentList '-jar ruoyi-admin/target/ruoyi-admin.jar --spring.config.additional-location=file:../.runtime/ --spring.profiles.active=druid,local --debug=false' -WorkingDirectory $backendDir -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $logDir 'backend.out.log') -RedirectStandardError (Join-Path $logDir 'backend.err.log')
+    $backendProcess = Start-Process -FilePath $javaExe -ArgumentList '-jar ruoyi-admin/target/ruoyi-admin.jar --spring.config.additional-location=file:../.runtime/,optional:file:../.runtime/arcsoft/face-local.yml --spring.profiles.active=druid,local --debug=false' -WorkingDirectory $backendDir -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $logDir 'backend.out.log') -RedirectStandardError (Join-Path $logDir 'backend.err.log')
     @{ Id = $backendProcess.Id; Started = $backendProcess.StartTime.ToUniversalTime().Ticks } | ConvertTo-Json | Set-Content (Join-Path $runtimeDir 'backend-process.json')
 }
 if (!(Test-Port 80)) {

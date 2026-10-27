@@ -8,6 +8,7 @@ import com.ruoyi.attendance.domain.dto.AttDailyCalculateRequest;
 public interface IAttDailyService
 {
     List<AttDailyResult> selectResultList(AttDailyQuery query);
+    List<AttDailyResult> selectMyResultList(AttDailyQuery query);
     List<AttEmployee> selectCandidates(AttDailyQuery query);
     AttDailyResult getResult(Long resultId);
     Map<String, Integer> calculate(AttDailyCalculateRequest request);

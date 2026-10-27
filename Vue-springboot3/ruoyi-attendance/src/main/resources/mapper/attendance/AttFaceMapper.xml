@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.attendance.mapper.AttFaceMapper">
+    <resultMap id="Face" type="com.ruoyi.attendance.domain.AttFaceProfile">
+        <id property="employeeId" column="employee_id" />
+        <result property="encryptedFeature" column="encrypted_feature" />
+        <result property="model" column="model" /><result property="version" column="version" />
+        <result property="updatedBy" column="updated_by" /><result property="updatedTime" column="updated_time" />
+    </resultMap>
+    <select id="selectProfile" resultMap="Face">select * from att_employee_face where employee_id=#{employeeId}</select>
+    <insert id="saveProfile">
+        insert into att_employee_face(employee_id,encrypted_feature,model,version,updated_by,updated_time)
+        values(#{employeeId},#{encryptedFeature},#{model},1,#{updatedBy},now())
+        on duplicate key update encrypted_feature=values(encrypted_feature),model=values(model),version=version+1,updated_by=values(updated_by),updated_time=now()
+    </insert>
+    <delete id="deleteProfile">delete from att_employee_face where employee_id=#{employeeId}</delete>
+    <insert id="insertVerification">
+        insert into att_face_verification(record_id,score,threshold,profile_version,model,verified_time)
+        values(#{recordId},#{score},#{threshold},#{version},#{model},now())
+    </insert>
+    <select id="selectVerification" resultType="map">
+        select record_id as recordId,score,threshold,profile_version as profileVersion,model,
+            date_format(verified_time,'%Y-%m-%d %H:%i:%s') as verifiedTime from att_face_verification where record_id=#{recordId}
+    </select>
+</mapper>

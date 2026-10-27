@@ -17,7 +17,7 @@
       <el-table-column label="场所" prop="siteName" min-width="160" show-overflow-tooltip />
       <el-table-column label="签到场次" prop="sessionTitle" min-width="180" show-overflow-tooltip />
       <el-table-column label="签到时间" prop="checkinTime" width="180" />
-      <el-table-column label="方式" width="90"><template #default>扫码</template></el-table-column>
+      <el-table-column label="方式" width="130"><template #default="{row}">{{ row.checkinMethod === 'QR_FACE' ? '扫码＋人脸核验' : '扫码' }}</template></el-table-column>
       <el-table-column label="操作" width="90" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="detail(row)" v-hasPermi="['attendance:record:query']">详情</el-button></template></el-table-column>
     </el-table>
     <pagination v-show="total > 0" :total="total" v-model:page="query.pageNum" v-model:limit="query.pageSize" @pagination="load" />
@@ -28,22 +28,36 @@
         <el-descriptions-item label="系统账号">{{ record.userName }}</el-descriptions-item><el-descriptions-item label="所属部门">{{ record.deptName }}</el-descriptions-item>
         <el-descriptions-item label="办公场所" :span="2">{{ record.siteName }}</el-descriptions-item>
         <el-descriptions-item label="签到场次" :span="2">{{ record.sessionTitle }}</el-descriptions-item>
-        <el-descriptions-item label="签到时间">{{ record.checkinTime }}</el-descriptions-item><el-descriptions-item label="签到方式">扫码</el-descriptions-item>
+        <el-descriptions-item label="签到时间">{{ record.checkinTime }}</el-descriptions-item><el-descriptions-item label="签到方式">{{ record.checkinMethod === 'QR_FACE' ? '扫码＋人脸核验' : '扫码' }}</el-descriptions-item>
       </el-descriptions>
+      <p v-if="verification">虹软核验分数 {{ Number(verification.score).toFixed(4) }}，阈值 {{ verification.threshold }}，人脸档案版本 {{ verification.profileVersion }}。未包含活体检测。</p>
       <template #footer><el-button @click="detailOpen = false">关闭</el-button></template>
     </el-dialog>
   </div>
 </template>
 <script setup name="AttendanceRecord">
 import { listRecord, getRecord } from '@/api/attendance/checkin'
+import { faceVerification } from '@/api/attendance/face'
 import { siteOptions } from '@/api/attendance/site'
 const { proxy } = getCurrentInstance(), route = useRoute()
 const query = reactive({ pageNum: 1, pageSize: 10, employeeNo: '', employeeName: '', siteId: undefined, sessionId: route.query.sessionId ? Number(route.query.sessionId) : undefined })
 const rows = ref([]), sites = ref([]), total = ref(0), loading = ref(false), dateRange = ref([]), showSearch = ref(true), detailOpen = ref(false), record = ref({})
+const verification = ref(null)
 async function load() { loading.value = true; try { const r = await listRecord({ ...query, beginDate: dateRange.value?.[0], endDate: dateRange.value?.[1] }); rows.value = r.rows; total.value = r.total } finally { loading.value = false } }
 async function loadSites(keyword = '') { sites.value = (await siteOptions(keyword)).data }
 function search() { query.pageNum = 1; load() }
 function resetQuery() { proxy.resetForm('queryRef'); dateRange.value = []; query.sessionId = undefined; search() }
-async function detail(row) { record.value = (await getRecord(row.recordId)).data; detailOpen.value = true }
+let detailVersion = 0
+async function detail(row) {
+  const current = ++detailVersion
+  verification.value = null
+  const r = await getRecord(row.recordId)
+  if (current !== detailVersion) return
+  record.value = r.data; detailOpen.value = true
+  if (record.value.checkinMethod === 'QR_FACE') {
+    const v = await faceVerification(row.recordId)
+    if (current === detailVersion) verification.value = v.data
+  }
+}
 loadSites(); load()
 </script>

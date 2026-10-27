@@ -84,6 +84,14 @@ public class AttDailyCalculator
         return Arrays.asList(rule.workDays().split(",")).contains(String.valueOf(date.getDayOfWeek().getValue()));
     }
 
+    /** 包含窗口结束的整分钟；休息日到次日零时才允许自动落账。 */
+    public boolean isClosed(AttDailyResult result, Instant now)
+    {
+        if (!result.getWorkDay()) return !now.isBefore(result.getAttendanceDate().plusDays(1).atStartOfDay(ZONE).toInstant());
+        return !now.isBefore(result.getStartWindowEnd().toInstant().plusSeconds(60))
+                && !now.isBefore(result.getEndWindowEnd().toInstant().plusSeconds(60));
+    }
+
     private boolean within(AttCheckinRecord punch, Date from, Date end, Instant now)
     {
         Instant time = punch.getCheckinTime().toInstant();

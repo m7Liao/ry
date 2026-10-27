@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.ruoyi.common.constant.Constants;
 import com.ruoyi.common.constant.ScheduleConstants;
+import com.ruoyi.common.core.domain.TaskExecutionResult;
 import com.ruoyi.common.utils.ExceptionUtil;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.bean.BeanUtils;
@@ -80,11 +81,18 @@ public abstract class AbstractQuartzJob implements Job
         sysJobLog.setEndTime(new Date());
         long runMs = sysJobLog.getEndTime().getTime() - sysJobLog.getStartTime().getTime();
         sysJobLog.setJobMessage(sysJobLog.getJobName() + " 总共耗时：" + runMs + "毫秒");
+        TaskExecutionResult report = context.getResult() instanceof TaskExecutionResult value ? value : null;
+        if (report != null) sysJobLog.setJobMessage(StringUtils.substring(sysJobLog.getJobMessage() + "；" + report.message(), 0, 500));
         if (e != null)
         {
             sysJobLog.setStatus(Constants.FAIL);
             String errorMsg = StringUtils.substring(ExceptionUtil.getExceptionMessage(e), 0, 2000);
             sysJobLog.setExceptionInfo(errorMsg);
+        }
+        else if (report != null && !report.success())
+        {
+            sysJobLog.setStatus(Constants.FAIL);
+            sysJobLog.setExceptionInfo(StringUtils.substring(report.message(), 0, 2000));
         }
         else
         {

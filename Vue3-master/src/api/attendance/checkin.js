@@ -1,5 +1,7 @@
 import request from '@/utils/request'
 
+export const myDailyResults = params => request({ url: '/attendance/checkin/daily', method: 'get', params, quiet: true })
+
 export const listSession = params => request({ url: '/attendance/session/list', method: 'get', params })
 export const getSession = id => request({ url: `/attendance/session/${id}`, method: 'get' })
 export const createSession = data => request({ url: '/attendance/session', method: 'post', data })

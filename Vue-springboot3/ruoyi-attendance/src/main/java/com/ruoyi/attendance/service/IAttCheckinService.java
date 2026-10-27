@@ -10,4 +10,6 @@ public interface IAttCheckinService
     AttCheckinIdentityView getIdentity();
     AttCheckinPreview preview(String ticket);
     AttCheckinResult submit(String ticket);
+    AttCheckinResult submitWithFace(String ticket, org.springframework.web.multipart.MultipartFile image);
+    java.util.Map<String,Object> faceStatus();
 }

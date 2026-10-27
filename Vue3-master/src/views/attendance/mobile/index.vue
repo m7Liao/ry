@@ -14,25 +14,32 @@
         <p v-if="!ticket && !error" class="mobile-notice">请使用手机扫描办公场所展示的动态二维码，再确认签到。</p>
         <p v-if="preview && seconds > 0" class="mobile-notice" aria-live="polite">当前二维码还可使用 {{ seconds }} 秒。</p>
         <p v-if="preview && seconds <= 0" class="mobile-error" role="alert">二维码已过期，请重新扫描现场二维码。</p>
-        <el-button v-if="preview" class="mobile-primary" type="primary" :loading="saving" :disabled="seconds <= 0 || loading || !!error" @click="submit">确认签到</el-button>
+        <template v-if="face?.required">
+          <p class="mobile-notice">本场签到需核验本人人脸。人脸识别技术由虹软®提供；本版不包含活体检测。</p>
+          <FaceCapture v-if="face.ready && face.enrolled && seconds > 0" :disabled="saving" @captured="image = $event" />
+        </template>
+        <el-button v-if="preview" class="mobile-primary" type="primary" :loading="saving" :disabled="seconds <= 0 || loading || !!error || (face?.required && (!face.ready || !face.enrolled || !image))" @click="submit">{{ face?.required ? '核验人脸并签到' : '确认签到' }}</el-button>
         <el-button v-if="error && ticket" class="mobile-primary" @click="load">重试</el-button>
       </section>
-      <nav class="mobile-actions"><el-button text type="primary" @click="$router.push('/h5/records')">查看我的签到记录</el-button></nav>
+      <nav class="mobile-actions"><el-button text type="primary" @click="$router.push('/h5/records')">原始签到记录</el-button><el-button text type="primary" @click="$router.push('/h5/daily')">我的每日考勤</el-button></nav>
       <p class="mobile-notice">签到结果以系统保存的记录为准。二维码过期或场次结束时，请联系现场管理员。</p>
     </div>
   </main>
 </template>
 <script setup name="AttendanceMobileCheckin">
 import { myIdentity, previewCheckin, submitCheckin } from '@/api/attendance/checkin'
+import { myFaceStatus, submitFaceCheckin } from '@/api/attendance/face'
+import FaceCapture from '@/components/FaceCapture/index.vue'
 import useUserStore from '@/store/modules/user'
 import './mobile.css'
 const route = useRoute(), router = useRouter(), userStore = useUserStore()
 const identity = ref(null), preview = ref(null), result = ref(null), loading = ref(false), saving = ref(false), error = ref(''), seconds = ref(0)
+const face = ref(null), image = ref(null)
 const ticket = computed(() => typeof route.query.ticket === 'string' && /^[0-9a-f]{64}$/.test(route.query.ticket) ? route.query.ticket : '')
 let timer, offset = 0, requestVersion = 0
 function tick() { seconds.value = preview.value ? Math.max(0, Math.ceil((preview.value.expiresAt - Date.now() - offset) / 1000)) : 0 }
 async function load() {
-  const version = ++requestVersion; loading.value = true; error.value = ''; preview.value = null; result.value = null
+  const version = ++requestVersion; loading.value = true; error.value = ''; preview.value = null; result.value = null; face.value = null; image.value = null
   try {
     const me = await myIdentity()
     if (version !== requestVersion) return
@@ -43,6 +50,13 @@ async function load() {
       if (version !== requestVersion) return
       preview.value = r.data; offset = r.data.serverTime - Date.now(); tick()
       if (r.data.recordId) result.value = { ...r.data, repeated: true }
+      else {
+        const status = await myFaceStatus()
+        if (version !== requestVersion) return
+        face.value = status.data
+        if (face.value.required && !face.value.ready) error.value = face.value.message
+        else if (face.value.required && !face.value.enrolled) error.value = '本人尚未录入人脸，请联系管理员'
+      }
     }
   } catch (e) { if (version === requestVersion) error.value = e.message || '无法读取签到信息，请检查网络或联系管理员' }
   finally { if (version === requestVersion) loading.value = false }
@@ -50,7 +64,7 @@ async function load() {
 async function submit() {
   if (saving.value || seconds.value <= 0) return
   saving.value = true; error.value = ''
-  try { result.value = (await submitCheckin(ticket.value)).data }
+  try { result.value = (await (face.value?.required ? submitFaceCheckin(ticket.value, image.value) : submitCheckin(ticket.value))).data }
   catch (e) { error.value = e.message || '签到提交失败，请重试' }
   finally { saving.value = false }
 }

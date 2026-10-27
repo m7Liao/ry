@@ -24,13 +24,15 @@
       <el-table-column label="联系电话" prop="phone" min-width="135" />
       <el-table-column label="入职日期" prop="hireDate" width="115" />
       <el-table-column label="状态" width="90"><template #default="{ row }"><el-tag :type="row.status === '0' ? 'success' : 'info'">{{ row.status === '0' ? '在职' : '离职' }}</el-tag></template></el-table-column>
-      <el-table-column label="操作" width="210" fixed="right"><template #default="{ row }">
+      <el-table-column label="操作" width="280" fixed="right"><template #default="{ row }">
+        <el-button link type="primary" v-hasPermi="['attendance:face:query']" @click="faceDialog.show(row)">人脸档案</el-button>
         <el-button link type="primary" v-hasPermi="['attendance:employee:query']" @click="openEdit(row, true)">详情</el-button>
         <el-button link type="primary" v-hasPermi="['attendance:employee:edit']" @click="openEdit(row)">修改 / 绑定</el-button>
         <el-button link type="danger" v-hasPermi="['attendance:employee:remove']" @click="remove([row.employeeId])">删除</el-button>
       </template></el-table-column>
     </el-table>
     <pagination v-show="total > 0" :total="total" v-model:page="query.pageNum" v-model:limit="query.pageSize" @pagination="load" />
+    <FaceDialog ref="faceDialog" />
 
     <el-dialog v-model="open" :title="readonly ? '员工档案详情' : form.employeeId ? '修改员工档案与场所绑定' : '新增员工档案'" width="720px" append-to-body :close-on-click-modal="false" @closed="clearValidation">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" :disabled="readonly || saving">
@@ -60,9 +62,11 @@
 </template>
 
 <script setup name="AttendanceEmployee">
+import FaceDialog from './FaceDialog.vue'
 import { listEmployee, getEmployee, addEmployee, updateEmployee, deleteEmployee, userOptions } from '@/api/attendance/employee'
 import { siteOptions, departmentOptions } from '@/api/attendance/site'
 const { proxy } = getCurrentInstance()
+const faceDialog = ref()
 const rows = ref([]), total = ref(0), selected = ref([]), loading = ref(false), showSearch = ref(true)
 const query = reactive({ pageNum: 1, pageSize: 10, employeeNo: '', employeeName: '', deptId: undefined, siteId: undefined, status: '' })
 const departments = ref([]), sites = ref([]), users = ref([]), usersLoading = ref(false), sitesLoading = ref(false)

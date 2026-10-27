@@ -43,7 +43,7 @@
         insert into att_checkin_record(session_id,employee_id,user_id,dept_id,site_id,employee_no,employee_name,
             user_name,dept_name,site_name,session_title,checkin_time,checkin_method)
         values(#{sessionId},#{employeeId},#{userId},#{deptId},#{siteId},#{employeeNo},#{employeeName},
-            #{userName},#{deptName},#{siteName},#{sessionTitle},#{checkinTime},'QR')
+            #{userName},#{deptName},#{siteName},#{sessionTitle},#{checkinTime},#{checkinMethod})
     </insert>
     <select id="countEmployeeRecords" resultType="int">select count(*) from att_checkin_record where employee_id=#{employeeId}</select>
 </mapper>

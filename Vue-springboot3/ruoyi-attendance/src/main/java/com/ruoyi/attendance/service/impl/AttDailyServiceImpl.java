@@ -2,18 +2,13 @@ package com.ruoyi.attendance.service.impl;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import com.ruoyi.attendance.domain.*;
 import com.ruoyi.attendance.domain.dto.AttDailyCalculateRequest;
-import com.ruoyi.attendance.domain.vo.AttDailyRuleSnapshot;
 import com.ruoyi.attendance.mapper.AttDailyMapper;
 import com.ruoyi.attendance.mapper.AttEmployeeMapper;
 import com.ruoyi.attendance.service.*;
@@ -30,15 +25,14 @@ public class AttDailyServiceImpl implements IAttDailyService
     private final AttDailyMapper mapper;
     private final IAttSiteService siteService;
     private final IAttRuleService ruleService;
-    private final AttDailyCalculator calculator;
-    private final ObjectMapper json;
+    private final AttDailyWorker worker;
     private final AttEmployeeMapper employeeMapper;
 
     public AttDailyServiceImpl(AttDailyMapper mapper, IAttSiteService siteService, IAttRuleService ruleService,
-            AttDailyCalculator calculator, ObjectMapper json, AttEmployeeMapper employeeMapper)
+            AttDailyWorker worker, AttEmployeeMapper employeeMapper)
     {
         this.mapper = mapper; this.siteService = siteService; this.ruleService = ruleService;
-        this.calculator = calculator; this.json = json;
+        this.worker = worker;
         this.employeeMapper = employeeMapper;
     }
 
@@ -52,6 +46,19 @@ public class AttDailyServiceImpl implements IAttDailyService
     }
 
     @Override
+    public List<AttDailyResult> selectMyResultList(AttDailyQuery query)
+    {
+        if (query.getBeginDate() == null && query.getEndDate() == null)
+        {
+            query.setEndDate(LocalDate.now(AttDailyCalculator.ZONE)); query.setBeginDate(query.getEndDate().minusDays(29));
+        }
+        if (query.getBeginDate() == null || query.getEndDate() == null) throw new ServiceException("请同时提供开始日期和结束日期");
+        long days = java.time.temporal.ChronoUnit.DAYS.between(query.getBeginDate(), query.getEndDate());
+        if (days < 0 || days > 92) throw new ServiceException("查询日期需按先后顺序，且每次不超过93天");
+        return mapper.selectMyResultList(query, SecurityUtils.getUserId());
+    }
+
+    @Override
     @DataScope(deptAlias = "u", userAlias = "u")
     public List<AttEmployee> selectCandidates(AttDailyQuery query) { return mapper.selectCandidates(query); }
 
@@ -61,7 +68,7 @@ public class AttDailyServiceImpl implements IAttDailyService
         AttDailyQuery query = new AttDailyQuery(); query.setResultId(resultId);
         List<AttDailyResult> rows = SpringUtils.getAopProxy(this).selectResultList(query);
         if (rows.isEmpty()) throw new ServiceException("结果不存在或无权访问", 403);
-        AttDailyResult result = rows.get(0); result.setRuleConfig(snapshot(result.getRuleSnapshot()));
+        AttDailyResult result = rows.get(0); result.setRuleConfig(worker.snapshot(result.getRuleSnapshot()));
         return result;
     }
 
@@ -77,10 +84,6 @@ public class AttDailyServiceImpl implements IAttDailyService
         List<AttRule> rules = ruleService.selectRuleList(ruleQuery);
         if (rules.isEmpty() || !"0".equals(rules.get(0).getStatus())) throw new ServiceException("请先为该场所配置并启用考勤规则");
         AttRule rule = rules.get(0);
-        AttDailyRuleSnapshot config = AttDailyRuleSnapshot.from(rule);
-        String encoded;
-        try { encoded = json.writeValueAsString(config); }
-        catch (JsonProcessingException e) { throw new ServiceException("规则快照保存失败"); }
         AttDailyQuery query = new AttDailyQuery(); query.setSiteId(site.getSiteId()); query.setAttendanceDate(date);
         List<AttEmployee> candidates = SpringUtils.getAopProxy(this).selectCandidates(query);
         if (candidates.size() > 1000) throw new ServiceException("该场所待计算员工超过1000人，请缩小管理数据范围");
@@ -94,21 +97,8 @@ public class AttDailyServiceImpl implements IAttDailyService
             if (current.isEmpty()) { skipped++; continue; }
             employee = current.get(0);
             if (mapper.selectExistingId(employee.getEmployeeId(), date) != null) { skipped++; continue; }
-            AttDailyResult result = new AttDailyResult();
-            result.setAttendanceDate(date); result.setEmployeeId(employee.getEmployeeId()); result.setUserId(employee.getUserId());
-            result.setDeptId(employee.getDeptId()); result.setSiteId(site.getSiteId());
-            result.setEmployeeNo(employee.getEmployeeNo()); result.setEmployeeName(employee.getEmployeeName());
-            result.setUserName(employee.getUserName()); result.setDeptName(employee.getDeptName()); result.setSiteName(site.getSiteName());
-            result.setRuleId(rule.getRuleId()); result.setRuleName(rule.getRuleName()); result.setRuleVersion(rule.getVersion());
-            result.setRuleSnapshot(encoded); result.setCalculationCount(1);
-            runCalculation(result, config, now);
-            try { mapper.insertResult(result); created++; }
-            catch (DuplicateKeyException e)
-            {
-                // 同一员工同一日期的并发首次计算只保留先提交的快照，不覆盖。
-                if (mapper.selectExistingId(employee.getEmployeeId(), date) == null) throw e;
-                skipped++;
-            }
+            if (worker.create(employee, site, rule, date, SecurityUtils.getUsername(), now, false)) created++;
+            else skipped++;
         }
         return Map.of("created", created, "skipped", skipped, "candidates", candidates.size());
     }
@@ -128,27 +118,9 @@ public class AttDailyServiceImpl implements IAttDailyService
         for (Long id : ids)
         {
             getResult(id);
-            AttDailyResult result = mapper.lockResult(id);
-            if (result == null) throw new ServiceException("结果不存在或无权访问", 403);
-            getResult(id);
-            runCalculation(result, snapshot(result.getRuleSnapshot()), now);
-            count += mapper.updateCalculation(result);
+            if (worker.recalculate(id, SecurityUtils.getUsername(), now, null, false)) count++;
         }
         return count;
     }
 
-    private void runCalculation(AttDailyResult result, AttDailyRuleSnapshot rule, Instant now)
-    {
-        calculator.prepare(result, rule);
-        List<AttCheckinRecord> punches = result.getWorkDay() ? mapper.selectPunches(result.getEmployeeId(), result.getSiteId(),
-                result.getStartWindowStart(), Date.from(result.getEndWindowEnd().toInstant().plusSeconds(60)), Date.from(now), result.getResultId()) : List.of();
-        calculator.calculate(result, rule, punches, now);
-        result.setCalculatedBy(SecurityUtils.getUsername()); result.setCalculatedTime(Date.from(now));
-    }
-
-    private AttDailyRuleSnapshot snapshot(String value)
-    {
-        try { return json.readValue(value, AttDailyRuleSnapshot.class); }
-        catch (JsonProcessingException e) { throw new ServiceException("保存的规则快照无法读取，请联系管理员"); }
-    }
 }

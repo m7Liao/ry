@@ -27,6 +27,18 @@ import Layout from '@/layout'
 // 公共路由
 export const constantRoutes = [
   {
+    path: '/h5/monthly',
+    component: () => import('@/views/attendance/mobile/monthly.vue'),
+    hidden: true,
+    meta: { title: '我的月度考勤' }
+  },
+  {
+    path: '/h5/daily',
+    component: () => import('@/views/attendance/mobile/daily.vue'),
+    hidden: true,
+    meta: { title: '我的每日考勤' }
+  },
+  {
     path: '/h5/login',
     component: () => import('@/views/attendance/mobile/login.vue'),
     hidden: true,

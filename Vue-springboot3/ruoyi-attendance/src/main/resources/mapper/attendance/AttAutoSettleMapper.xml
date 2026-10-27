@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.attendance.mapper.AttAutoSettleMapper">
+    <select id="selectSite" resultMap="com.ruoyi.attendance.mapper.AttSiteMapper.Site">select * from att_site where site_id=#{siteId}</select>
+    <select id="selectRule" resultMap="com.ruoyi.attendance.mapper.AttRuleMapper.Rule">select * from att_rule where site_id=#{siteId}</select>
+    <select id="selectMissingEmployees" resultType="long">
+        select e.employee_id from att_employee e join sys_user u on u.user_id=e.user_id and u.del_flag='0'
+        join sys_dept d on d.dept_id=u.dept_id and d.del_flag='0'
+        where e.site_id=#{siteId} and e.hire_date &lt;= #{date} and (e.leave_date is null or e.leave_date &gt;= #{date})
+        and not exists (select 1 from att_daily_result r where r.employee_id=e.employee_id and r.attendance_date=#{date})
+        order by e.employee_id limit 1001
+    </select>
+    <select id="selectEmployee" resultMap="com.ruoyi.attendance.mapper.AttEmployeeMapper.Employee">
+        select e.*,u.user_name,u.dept_id,d.dept_name from att_employee e
+        join sys_user u on u.user_id=e.user_id and u.del_flag='0' join sys_dept d on d.dept_id=u.dept_id and d.del_flag='0'
+        where e.employee_id=#{employeeId} and e.site_id=#{siteId}
+        and e.hire_date &lt;= #{date} and (e.leave_date is null or e.leave_date &gt;= #{date})
+    </select>
+    <select id="selectClosedPending" resultType="long">
+        select result_id from att_daily_result where site_id=#{siteId} and result_status='PENDING'
+        and ((work_day=1 and date_add(start_window_end,interval 1 minute)&lt;=#{now} and date_add(end_window_end,interval 1 minute)&lt;=#{now})
+            or (work_day=0 and date_add(attendance_date,interval 1 day)&lt;=#{now}))
+        order by result_id limit 1000
+    </select>
+</mapper>

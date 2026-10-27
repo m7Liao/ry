@@ -9,9 +9,11 @@ import com.ruoyi.attendance.domain.*;
 public interface AttDailyMapper
 {
     List<AttDailyResult> selectResultList(AttDailyQuery query);
+    List<AttDailyResult> selectMyResultList(@Param("query") AttDailyQuery query, @Param("userId") Long userId);
     List<AttEmployee> selectCandidates(AttDailyQuery query);
     Long selectExistingId(@Param("employeeId") Long employeeId, @Param("attendanceDate") LocalDate attendanceDate);
     AttDailyResult lockResult(Long resultId);
+    AttDailyResult selectResultById(Long resultId);
     List<AttCheckinRecord> selectPunches(@Param("employeeId") Long employeeId, @Param("siteId") Long siteId,
             @Param("from") Date from, @Param("until") Date until, @Param("now") Date now, @Param("resultId") Long resultId);
     int insertResult(AttDailyResult result);

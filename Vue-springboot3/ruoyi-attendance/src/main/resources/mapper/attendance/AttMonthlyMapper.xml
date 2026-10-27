@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.attendance.mapper.AttMonthlyMapper">
+    <resultMap id="Monthly" type="com.ruoyi.attendance.domain.vo.AttMonthlyRow">
+        <result property="employeeId" column="employee_id" />
+        <result property="employeeNo" column="employee_no" />
+        <result property="employeeName" column="employee_name" />
+        <result property="deptName" column="dept_name" />
+        <result property="generatedDays" column="generated_days" />
+        <result property="workDays" column="work_days" />
+        <result property="settledDays" column="settled_days" />
+        <result property="attendedDays" column="attended_days" />
+        <result property="normalDays" column="normal_days" />
+        <result property="abnormalDays" column="abnormal_days" />
+        <result property="pendingDays" column="pending_days" />
+        <result property="restDays" column="rest_days" />
+        <result property="missingDays" column="missing_days" />
+        <result property="lateDays" column="late_days" />
+        <result property="earlyDays" column="early_days" />
+        <result property="lateMinutes" column="late_minutes" />
+        <result property="earlyMinutes" column="early_minutes" />
+        <result property="plannedWorkMinutes" column="planned_work_minutes" />
+        <result property="settledPlannedMinutes" column="settled_planned_minutes" />
+        <result property="workMinutes" column="work_minutes" />
+        <result property="unknownWorkDays" column="unknown_work_days" />
+    </resultMap>
+    <select id="selectMonthly" resultMap="Monthly">
+        select g.*,n.employee_no,n.employee_name,n.dept_name from (
+            select r.employee_id,max(r.result_id) latest_id,
+                count(*) generated_days,
+                sum(r.work_day=1) work_days,
+                sum(r.result_status in ('NORMAL','ABNORMAL')) settled_days,
+                sum(r.result_status in ('NORMAL','ABNORMAL') and r.missing_in=0 and r.missing_out=0 and r.work_minutes is not null) attended_days,
+                sum(r.result_status='NORMAL') normal_days,
+                sum(r.result_status='ABNORMAL') abnormal_days,
+                sum(r.result_status='PENDING') pending_days,
+                sum(r.result_status='REST') rest_days,
+                sum(r.result_status in ('NORMAL','ABNORMAL') and (r.missing_in=1 or r.missing_out=1)) missing_days,
+                sum(r.result_status in ('NORMAL','ABNORMAL') and r.late_minutes &gt; 0) late_days,
+                sum(r.result_status in ('NORMAL','ABNORMAL') and r.early_minutes &gt; 0) early_days,
+                sum(case when r.result_status in ('NORMAL','ABNORMAL') then r.late_minutes else 0 end) late_minutes,
+                sum(case when r.result_status in ('NORMAL','ABNORMAL') then r.early_minutes else 0 end) early_minutes,
+                sum(case when r.work_day=1 then r.planned_work_minutes else 0 end) planned_work_minutes,
+                sum(case when r.result_status in ('NORMAL','ABNORMAL') and r.missing_in=0 and r.missing_out=0 and r.work_minutes is not null then r.planned_work_minutes else 0 end) settled_planned_minutes,
+                sum(case when r.result_status in ('NORMAL','ABNORMAL') and r.missing_in=0 and r.missing_out=0 then coalesce(r.work_minutes,0) else 0 end) work_minutes,
+                sum(r.work_day=1 and (r.result_status='PENDING' or r.missing_in=1 or r.missing_out=1 or r.work_minutes is null)) unknown_work_days
+            from att_daily_result r
+            where r.attendance_date &gt;= #{beginDate} and r.attendance_date &lt;= #{endDate}
+            <if test="siteId != null">and r.site_id=#{siteId}</if>
+            <if test="deptId != null">and r.dept_id=#{deptId}</if>
+            <if test="userId != null">and r.user_id=#{userId}</if>
+            <if test="employeeNo != null and employeeNo != ''">and r.employee_no like concat('%',#{employeeNo},'%')</if>
+            <if test="employeeName != null and employeeName != ''">and r.employee_name like concat('%',#{employeeName},'%')</if>
+            ${params.dataScope}
+            group by r.employee_id
+        ) g join att_daily_result n on n.result_id=g.latest_id
+        order by g.employee_id
+    </select>
+</mapper>
+
