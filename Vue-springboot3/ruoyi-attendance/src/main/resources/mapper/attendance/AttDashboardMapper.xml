@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.attendance.mapper.AttDashboardMapper">
+    <resultMap id="Metrics" type="com.ruoyi.attendance.domain.vo.AttDashboardMetrics">
+        <result property="totalCount" column="total_count" />
+        <result property="employeeCount" column="employee_count" />
+        <result property="settledCount" column="settled_count" />
+        <result property="normalCount" column="normal_count" />
+        <result property="abnormalCount" column="abnormal_count" />
+        <result property="missingCount" column="missing_count" />
+        <result property="pendingCount" column="pending_count" />
+        <result property="restCount" column="rest_count" />
+        <result property="lateCount" column="late_count" />
+        <result property="earlyCount" column="early_count" />
+        <result property="missingInCount" column="missing_in_count" />
+        <result property="missingOutCount" column="missing_out_count" />
+        <result property="attendanceDate" column="attendance_date" />
+        <result property="siteId" column="site_id" />
+        <result property="siteName" column="site_name" />
+        <result property="lastCalculatedTime" column="last_calculated_time" />
+    </resultMap>
+    <sql id="RangeScope">
+        r.attendance_date &gt;= #{beginDate} and r.attendance_date &lt;= #{endDate}
+        ${params.dataScope}
+    </sql>
+    <sql id="FilteredScope">
+        <include refid="RangeScope" />
+        <if test="siteId != null">and r.site_id=#{siteId}</if>
+    </sql>
+    <sql id="Aggregates">
+        count(*) total_count,
+        count(distinct r.employee_id) employee_count,
+        coalesce(sum(case when r.result_status in ('NORMAL','ABNORMAL') then 1 else 0 end),0) settled_count,
+        coalesce(sum(case when r.result_status='NORMAL' then 1 else 0 end),0) normal_count,
+        coalesce(sum(case when r.result_status='ABNORMAL' then 1 else 0 end),0) abnormal_count,
+        coalesce(sum(case when r.result_status in ('NORMAL','ABNORMAL') and (r.missing_in=1 or r.missing_out=1) then 1 else 0 end),0) missing_count,
+        coalesce(sum(case when r.result_status='PENDING' then 1 else 0 end),0) pending_count,
+        coalesce(sum(case when r.result_status='REST' then 1 else 0 end),0) rest_count,
+        coalesce(sum(case when r.result_status in ('NORMAL','ABNORMAL') and r.late_minutes&gt;0 then 1 else 0 end),0) late_count,
+        coalesce(sum(case when r.result_status in ('NORMAL','ABNORMAL') and r.early_minutes&gt;0 then 1 else 0 end),0) early_count,
+        coalesce(sum(case when r.result_status in ('NORMAL','ABNORMAL') and r.missing_in=1 then 1 else 0 end),0) missing_in_count,
+        coalesce(sum(case when r.result_status in ('NORMAL','ABNORMAL') and r.missing_out=1 then 1 else 0 end),0) missing_out_count,
+        max(r.calculated_time) last_calculated_time
+    </sql>
+    <select id="selectSummary" resultMap="Metrics">
+        select <include refid="Aggregates" /> from att_daily_result r
+        where <include refid="FilteredScope" />
+    </select>
+    <select id="selectTrend" resultMap="Metrics">
+        select r.attendance_date,<include refid="Aggregates" /> from att_daily_result r
+        where <include refid="FilteredScope" />
+        group by r.attendance_date order by r.attendance_date
+    </select>
+    <!-- 从有权限的结果生成场所选项，名称取该统计期内最近创建结果的快照。 -->
+    <select id="selectSites" resultMap="Metrics">
+        select g.*,n.site_name from (
+            select r.site_id,max(r.result_id) latest_id,<include refid="Aggregates" />
+            from att_daily_result r where <include refid="RangeScope" />
+            group by r.site_id
+        ) g join att_daily_result n on n.result_id=g.latest_id
+        order by g.total_count desc,g.site_id
+    </select>
+</mapper>

@@ -12,6 +12,7 @@ import com.ruoyi.attendance.domain.AttRule;
 import com.ruoyi.attendance.domain.AttSite;
 import com.ruoyi.attendance.mapper.AttRuleMapper;
 import com.ruoyi.attendance.mapper.AttSiteMapper;
+import com.ruoyi.attendance.mapper.AttDailyMapper;
 import com.ruoyi.attendance.service.IAttRuleService;
 import com.ruoyi.attendance.service.IAttSiteService;
 import com.ruoyi.common.annotation.DataScope;
@@ -26,12 +27,14 @@ public class AttRuleServiceImpl implements IAttRuleService
     private final AttRuleMapper mapper;
     private final AttSiteMapper siteMapper;
     private final IAttSiteService siteService;
+    private final AttDailyMapper dailyMapper;
 
-    public AttRuleServiceImpl(AttRuleMapper mapper, AttSiteMapper siteMapper, IAttSiteService siteService)
+    public AttRuleServiceImpl(AttRuleMapper mapper, AttSiteMapper siteMapper, IAttSiteService siteService, AttDailyMapper dailyMapper)
     {
         this.mapper = mapper;
         this.siteMapper = siteMapper;
         this.siteService = siteService;
+        this.dailyMapper = dailyMapper;
     }
 
     @Override
@@ -98,6 +101,7 @@ public class AttRuleServiceImpl implements IAttRuleService
         AttRule rule = getRule(ruleId);
         if (siteMapper.lockSite(rule.getSiteId()) == null) throw new ServiceException("规则不存在或无权访问", 403);
         getRule(ruleId);
+        if (dailyMapper.countRuleResults(ruleId) > 0) throw new ServiceException("规则已有每日考勤结果，请停用并保留历史规则");
         return mapper.deleteRule(ruleId);
     }
 

@@ -1,6 +1,6 @@
 <template>
   <div class="app-container">
-    <el-alert class="scope-notice" title="当前用于保存固定班次参数和预览计划工时；扫码签到仍按场次开放时间校验，尚未自动计算迟到、早退、缺卡和实际工时。" type="info" :closable="false" show-icon />
+    <el-alert class="scope-notice" title="固定班次可用于手动计算每日考勤。首次计算保存规则快照，修改配置不会改变已有结果；扫码签到仍按场次开放时间校验。" type="info" :closable="false" show-icon />
     <el-form ref="queryRef" :model="query" :inline="true" v-show="showSearch">
       <el-form-item label="规则名称" prop="ruleName"><el-input v-model="query.ruleName" clearable style="width: 200px" @keyup.enter="search" /></el-form-item>
       <el-form-item label="办公场所" prop="siteId"><el-select v-model="query.siteId" filterable remote :remote-method="loadSites" clearable style="width: 230px"><el-option v-for="s in sites" :key="s.id" :label="s.label" :value="s.id" /></el-select></el-form-item>
@@ -16,7 +16,8 @@
       <el-table-column label="上下班" width="160"><template #default="{ row }">{{ row.startTime }} ～ {{ row.endNextDay === '1' ? '次日 ' : '' }}{{ row.endTime }}</template></el-table-column>
       <el-table-column label="计划工时" width="110"><template #default="{ row }">{{ durationLabel(row.plannedWorkMinutes) }}</template></el-table-column>
       <el-table-column label="规则状态" width="90"><template #default="{ row }"><el-tag :type="row.status === '0' ? 'success' : 'info'">{{ row.status === '0' ? '启用' : '停用' }}</el-tag></template></el-table-column>
-      <el-table-column label="操作" width="185" fixed="right"><template #default="{ row }">
+      <el-table-column label="操作" width="265" fixed="right"><template #default="{ row }">
+        <el-button link type="primary" v-hasPermi="['attendance:daily:list']" @click="$router.push({ path: '/attendance/daily', query: { siteId: row.siteId } })">每日结果</el-button>
         <el-button link type="primary" v-hasPermi="['attendance:rule:query']" @click="openEdit(row, true)">详情</el-button>
         <el-button link type="primary" v-hasPermi="['attendance:rule:edit']" @click="openEdit(row)">修改</el-button>
         <el-button link type="danger" v-hasPermi="['attendance:rule:remove']" @click="remove(row)">删除</el-button>
@@ -52,7 +53,7 @@
         <strong>规则预览</strong>
         <p v-if="preview.error" class="preview-error">{{ preview.error }}</p>
         <template v-else><p>上班打卡：{{ preview.startWindow }}</p><p>下班打卡：{{ preview.endWindow }}</p><p>计划工时：{{ durationLabel(preview.minutes) }}（班次时长减固定休息时长）</p></template>
-        <p class="preview-note">跨天班次按上班当天对应星期配置工作日。这里展示计划时长，实际工时需结合打卡与后续考勤计算确定。</p>
+        <p class="preview-note">跨天班次按上班当天对应星期配置工作日。这里展示计划时长，实际计算结果请到每日考勤结果中查看。</p>
       </div>
       <template #footer><el-button @click="open = false">{{ readonly ? '关闭' : '取消' }}</el-button><el-button v-if="!readonly" type="primary" :loading="saving" @click="save">保存</el-button></template>
     </el-dialog>

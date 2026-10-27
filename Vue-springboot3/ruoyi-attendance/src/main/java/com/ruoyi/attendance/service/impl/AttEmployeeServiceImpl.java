@@ -25,14 +25,16 @@ public class AttEmployeeServiceImpl implements IAttEmployeeService
     private final AttSiteMapper siteMapper;
     private final IAttSiteService siteService;
     private final AttCheckinRecordMapper recordMapper;
+    private final AttDailyMapper dailyMapper;
     public AttEmployeeServiceImpl(AttEmployeeMapper mapper, AttOptionMapper optionMapper,
-            AttSiteMapper siteMapper, IAttSiteService siteService, AttCheckinRecordMapper recordMapper)
+            AttSiteMapper siteMapper, IAttSiteService siteService, AttCheckinRecordMapper recordMapper, AttDailyMapper dailyMapper)
     {
         this.mapper = mapper;
         this.optionMapper = optionMapper;
         this.siteMapper = siteMapper;
         this.siteService = siteService;
         this.recordMapper = recordMapper;
+        this.dailyMapper = dailyMapper;
     }
 
     @Override
@@ -106,6 +108,7 @@ public class AttEmployeeServiceImpl implements IAttEmployeeService
             if (locked == null) throw new ServiceException("员工档案已被删除");
             optionMapper.lockUser(locked.getUserId());
             getEmployee(id);
+            if (dailyMapper.countEmployeeResults(id) > 0) throw new ServiceException("员工已有每日考勤结果，请保留档案并维护离职状态");
             if (recordMapper.countEmployeeRecords(id) > 0) throw new ServiceException("员工已有签到记录，请保留档案并维护离职状态");
             count += mapper.deleteEmployee(id);
         }

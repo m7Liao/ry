@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS att_rule (
     end_before_minutes INT NOT NULL DEFAULT 60,
     end_after_minutes INT NOT NULL DEFAULT 120,
     rest_minutes INT NOT NULL DEFAULT 60,
-    status CHAR(1) NOT NULL DEFAULT '0' COMMENT '0启用配置 1停用配置，当前不做每日计算',
+    status CHAR(1) NOT NULL DEFAULT '0' COMMENT '0启用 1停用，首次每日计算需启用',
     version INT NOT NULL DEFAULT 0 COMMENT '防止并发编辑覆盖，不是历史规则版本',
     remark VARCHAR(500) DEFAULT NULL,
     create_by VARCHAR(64) DEFAULT '', create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

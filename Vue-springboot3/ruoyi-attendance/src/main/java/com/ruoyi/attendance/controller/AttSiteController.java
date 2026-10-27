@@ -33,7 +33,7 @@ public class AttSiteController extends BaseController
     @GetMapping("/departments")
     public AjaxResult departments() { return success(optionService.selectDepartmentOptions(new SysDept())); }
 
-    @PreAuthorize("@ss.hasAnyPermi('attendance:employee:add,attendance:employee:edit,attendance:employee:list,attendance:session:list,attendance:session:add,attendance:session:qrcode,attendance:record:list,attendance:rule:list,attendance:rule:add,attendance:rule:edit,attendance:rule:query')")
+    @PreAuthorize("@ss.hasAnyPermi('attendance:employee:add,attendance:employee:edit,attendance:employee:list,attendance:session:list,attendance:session:add,attendance:session:qrcode,attendance:record:list,attendance:rule:list,attendance:rule:add,attendance:rule:edit,attendance:rule:query,attendance:daily:list,attendance:daily:calculate')")
     @GetMapping("/options")
     public AjaxResult options(String keyword) {
         AttSite query = new AttSite(); query.setSiteName(keyword);

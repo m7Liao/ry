@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.attendance.mapper.AttDailyMapper">
+    <resultMap id="Daily" type="com.ruoyi.attendance.domain.AttDailyResult">
+        <id property="resultId" column="result_id" />
+        <result property="attendanceDate" column="attendance_date" />
+        <result property="employeeId" column="employee_id" />
+        <result property="userId" column="user_id" />
+        <result property="deptId" column="dept_id" />
+        <result property="siteId" column="site_id" />
+        <result property="employeeNo" column="employee_no" />
+        <result property="employeeName" column="employee_name" />
+        <result property="userName" column="user_name" />
+        <result property="deptName" column="dept_name" />
+        <result property="siteName" column="site_name" />
+        <result property="ruleId" column="rule_id" />
+        <result property="ruleName" column="rule_name" />
+        <result property="ruleVersion" column="rule_version" />
+        <result property="ruleSnapshot" column="rule_snapshot" />
+        <result property="scheduledStart" column="scheduled_start" />
+        <result property="scheduledEnd" column="scheduled_end" />
+        <result property="startWindowStart" column="start_window_start" />
+        <result property="startWindowEnd" column="start_window_end" />
+        <result property="endWindowStart" column="end_window_start" />
+        <result property="endWindowEnd" column="end_window_end" />
+        <result property="inRecordId" column="in_record_id" />
+        <result property="outRecordId" column="out_record_id" />
+        <result property="inTime" column="in_time" />
+        <result property="outTime" column="out_time" />
+        <result property="workDay" column="work_day" />
+        <result property="resultStatus" column="result_status" />
+        <result property="missingIn" column="missing_in" />
+        <result property="missingOut" column="missing_out" />
+        <result property="lateMinutes" column="late_minutes" />
+        <result property="earlyMinutes" column="early_minutes" />
+        <result property="plannedWorkMinutes" column="planned_work_minutes" />
+        <result property="workMinutes" column="work_minutes" />
+        <result property="calculationCount" column="calculation_count" />
+        <result property="calculatedBy" column="calculated_by" />
+        <result property="calculatedTime" column="calculated_time" />
+    </resultMap>
+    <select id="selectResultList" resultMap="Daily">
+        select r.* from att_daily_result r
+        <where>
+            <if test="resultId != null">and r.result_id=#{resultId}</if>
+            <if test="employeeId != null">and r.employee_id=#{employeeId}</if>
+            <if test="siteId != null">and r.site_id=#{siteId}</if>
+            <if test="attendanceDate != null">and r.attendance_date=#{attendanceDate}</if>
+            <if test="beginDate != null">and r.attendance_date &gt;= #{beginDate}</if>
+            <if test="endDate != null">and r.attendance_date &lt;= #{endDate}</if>
+            <if test="employeeNo != null and employeeNo != ''">and r.employee_no like concat('%',#{employeeNo},'%')</if>
+            <if test="employeeName != null and employeeName != ''">and r.employee_name like concat('%',#{employeeName},'%')</if>
+            <if test="resultStatus != null and resultStatus != ''">and r.result_status=#{resultStatus}</if>
+            <if test="resultGroup == 'SETTLED' or resultGroup == 'MISSING'">and r.result_status in ('NORMAL','ABNORMAL')</if>
+            <if test="resultGroup == 'MISSING'">and (r.missing_in=1 or r.missing_out=1)</if>
+            <choose>
+                <when test="abnormalType == 'LATE'">and r.late_minutes &gt; 0</when>
+                <when test="abnormalType == 'EARLY'">and r.early_minutes &gt; 0</when>
+                <when test="abnormalType == 'MISSING_IN'">and r.missing_in=1</when>
+                <when test="abnormalType == 'MISSING_OUT'">and r.missing_out=1</when>
+            </choose>
+            ${params.dataScope}
+        </where>
+        order by r.attendance_date desc,r.result_id desc
+    </select>
+    <select id="selectCandidates" resultMap="com.ruoyi.attendance.mapper.AttEmployeeMapper.Employee">
+        select e.*,u.user_name,u.dept_id,d.dept_name,s.site_name
+        from att_employee e join sys_user u on u.user_id=e.user_id and u.del_flag='0'
+        join sys_dept d on d.dept_id=u.dept_id and d.del_flag='0'
+        join att_site s on s.site_id=e.site_id
+        where e.site_id=#{siteId} and e.hire_date &lt;= #{attendanceDate}
+          <if test="employeeId != null">and e.employee_id=#{employeeId}</if>
+          and (e.leave_date is null or e.leave_date &gt;= #{attendanceDate})
+        ${params.dataScope}
+        order by e.employee_id limit 1001
+    </select>
+    <select id="selectExistingId" resultType="long">
+        select result_id from att_daily_result where employee_id=#{employeeId} and attendance_date=#{attendanceDate}
+    </select>
+    <select id="lockResult" resultMap="Daily">
+        select * from att_daily_result where result_id=#{resultId} for update
+    </select>
+    <select id="selectPunches" resultMap="com.ruoyi.attendance.mapper.AttCheckinRecordMapper.Record">
+        select p.* from att_checkin_record p where p.employee_id=#{employeeId} and p.site_id=#{siteId}
+        and p.checkin_time &gt;= #{from} and p.checkin_time &lt; #{until} and p.checkin_time &lt;= #{now}
+        and not exists (select 1 from att_daily_result used where used.employee_id=p.employee_id
+            <if test="resultId != null">and used.result_id != #{resultId}</if>
+            and (used.in_record_id=p.record_id or used.out_record_id=p.record_id))
+        order by p.checkin_time,p.record_id
+    </select>
+    <insert id="insertResult" useGeneratedKeys="true" keyProperty="resultId">
+        insert into att_daily_result(attendance_date,employee_id,user_id,dept_id,site_id,employee_no,employee_name,user_name,dept_name,site_name,rule_id,rule_name,rule_version,rule_snapshot,scheduled_start,scheduled_end,start_window_start,start_window_end,end_window_start,end_window_end,in_record_id,out_record_id,in_time,out_time,work_day,result_status,missing_in,missing_out,late_minutes,early_minutes,planned_work_minutes,work_minutes,calculation_count,calculated_by,calculated_time)
+        values(#{attendanceDate},#{employeeId},#{userId},#{deptId},#{siteId},#{employeeNo},#{employeeName},#{userName},#{deptName},#{siteName},#{ruleId},#{ruleName},#{ruleVersion},#{ruleSnapshot},#{scheduledStart},#{scheduledEnd},#{startWindowStart},#{startWindowEnd},#{endWindowStart},#{endWindowEnd},#{inRecordId},#{outRecordId},#{inTime},#{outTime},#{workDay},#{resultStatus},#{missingIn},#{missingOut},#{lateMinutes},#{earlyMinutes},#{plannedWorkMinutes},#{workMinutes},#{calculationCount},#{calculatedBy},#{calculatedTime})
+    </insert>
+    <update id="updateCalculation">
+        update att_daily_result set scheduled_start=#{scheduledStart},
+            scheduled_end=#{scheduledEnd},
+            start_window_start=#{startWindowStart},
+            start_window_end=#{startWindowEnd},
+            end_window_start=#{endWindowStart},
+            end_window_end=#{endWindowEnd},
+            in_record_id=#{inRecordId},
+            out_record_id=#{outRecordId},
+            in_time=#{inTime},
+            out_time=#{outTime},
+            work_day=#{workDay},
+            result_status=#{resultStatus},
+            missing_in=#{missingIn},
+            missing_out=#{missingOut},
+            late_minutes=#{lateMinutes},
+            early_minutes=#{earlyMinutes},
+            planned_work_minutes=#{plannedWorkMinutes},
+            work_minutes=#{workMinutes},
+            calculated_by=#{calculatedBy},
+            calculated_time=#{calculatedTime},calculation_count=calculation_count+1 where result_id=#{resultId}
+    </update>
+    <select id="countEmployeeResults" resultType="int">select count(*) from att_daily_result where employee_id=#{id}</select>
+    <select id="countSiteResults" resultType="int">select count(*) from att_daily_result where site_id=#{id}</select>
+    <select id="countRuleResults" resultType="int">select count(*) from att_daily_result where rule_id=#{id}</select>
+</mapper>
